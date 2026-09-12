@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>输出乱码·根因判定与解决方案</title>
+<style>
+  :root{
+    --bg:#f6f7f9; --card:#ffffff; --line:#e3e6eb; --txt:#1f2430; --sub:#5c6675;
+    --ok:#0f7b4f; --okbg:#e8f6ef; --bad:#c0392b; --badbg:#fdecea;
+    --warn:#8a5a00; --warnbg:#fff6e5; --accent:#2d5bd7; --accentbg:#eef3ff;
+    --mono:"Cascadia Mono",Consolas,"SF Mono",Menlo,monospace;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--txt);
+       font:15px/1.75 -apple-system,"Segoe UI","Microsoft YaHei",sans-serif;}
+  .wrap{max-width:1000px;margin:0 auto;padding:40px 28px 80px}
+  h1{font-size:27px;margin:0 0 6px;letter-spacing:-.3px}
+  .meta{color:var(--sub);font-size:13px;margin-bottom:26px}
+  h2{font-size:19px;margin:38px 0 14px;padding-left:11px;border-left:4px solid var(--accent)}
+  h3{font-size:15px;margin:22px 0 8px;color:var(--sub);font-weight:600}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;
+        padding:20px 22px;margin:14px 0}
+  .verdict{border-left:5px solid var(--bad);background:var(--badbg)}
+  .verdict h2{border:0;padding:0;margin:0 0 8px;color:var(--bad);font-size:20px}
+  .verdict p{margin:6px 0}
+  table{width:100%;border-collapse:collapse;font-size:13.5px;margin:12px 0}
+  th,td{text-align:left;padding:9px 11px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{background:#f0f2f6;font-weight:600;color:var(--sub);font-size:12.5px;
+     text-transform:uppercase;letter-spacing:.4px}
+  tr:last-child td{border-bottom:0}
+  code{font-family:var(--mono);font-size:12.5px;background:#eef0f4;
+       padding:1.5px 6px;border-radius:5px;color:#2b3240}
+  pre{font-family:var(--mono);font-size:12.5px;background:#1e222b;color:#dfe4ec;
+      padding:15px 17px;border-radius:10px;overflow-x:auto;line-height:1.65;margin:12px 0}
+  pre .c{color:#8b95a7}
+  pre .g{color:#7fd6a8}
+  pre .r{color:#f08c84}
+  .tag{display:inline-block;font-size:11.5px;font-weight:700;padding:2px 9px;
+       border-radius:20px;letter-spacing:.3px;vertical-align:middle}
+  .t-ok{background:var(--okbg);color:var(--ok)}
+  .t-bad{background:var(--badbg);color:var(--bad)}
+  .t-warn{background:var(--warnbg);color:var(--warn)}
+  .t-info{background:var(--accentbg);color:var(--accent)}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  @media(max-width:720px){.grid{grid-template-columns:1fr}}
+  ul{margin:8px 0;padding-left:22px}
+  li{margin:5px 0}
+  .num{font-family:var(--mono);font-weight:600}
+  .ok-num{color:var(--ok)}
+  .bad-num{color:var(--bad)}
+  .foot{margin-top:44px;padding-top:18px;border-top:1px solid var(--line);
+        color:var(--sub);font-size:12.5px}
+  .hl{background:linear-gradient(transparent 62%,#ffe9a8 62%)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>输出乱码 · 根因判定与解决方案</h1>
+  <div class="meta">
+    Qwen3.8-27B-NVFP4 → FTW 转换 · FreeToken 引擎 · RTX 3090 (sm_86) · Windows
+    &nbsp;|&nbsp; 诊断完成时间 2026-09-12 19:4x
+  </div>
+
+  <div class="card verdict">
+    <h2>结论：不是参数问题，也不是转换问题 —— 是引擎在这块卡上跑不动这个检查点</h2>
+    <p><b>权重完全正确</b>（已逐元素对拍验证），<b>模型和显卡也都没问题</b>（同一张 3090 用
+       llama.cpp 跑同一模型，输出完全正常）。乱码来自 <b>FreeToken 在 sm_86 上模拟
+       FP8 / FP4 计算 + 为加载该检查点手工改过的 7 个内核胶水文件</b>。</p>
+    <p>这个检查点是 <b>NVIDIA Blackwell 专用</b>（官方原话：produced and validated on GB300，
+       仅支持 SGLang，首选 Linux）。RTX 3090 是 Ampere，<b>既没有 FP8 张量核、也没有 FP4 张量核</b>，
+       两种格式都得靠软件模拟 —— 官方包甚至不认这套检查点，是手工改了 7 个文件才勉强加载起来的。</p>
+  </div>
+
+  <h2>一、决定性对照实验</h2>
+  <p>同一个模型、同一张 RTX 3090、同一个提问，只换引擎：</p>
+  <div class="grid">
+    <div class="card" style="margin:0">
+      <div><span class="tag t-bad">FreeToken / FTW 路径</span></div>
+      <pre>prompt: The capital of France is
+<span class="r">输出: （空字符串）</span>
+completion_tokens: 23   <span class="c">← 生成了 23 个 token</span>
+                         <span class="c">  但全是非法 UTF-8，</span>
+                         <span class="c">  被解码器整段吞掉</span></pre>
+      <p style="margin:0;font-size:13px;color:var(--sub)">
+        换温度/贪心、换 cache-type、开参考实现内核，结果全部一样。</p>
+    </div>
+    <div class="card" style="margin:0">
+      <div><span class="tag t-ok">llama.cpp / GGUF 路径</span></div>
+      <pre><span class="c">$ llama-cli -m Qwen3.8-27B-BF16-...Q3_K_XL.gguf</span>
+prompt: The capital of France is
+<span class="g">输出: The capital of France is **Paris**.</span>
+Generation: 41.1 t/s</pre>
+      <p style="margin:0;font-size:13px;color:var(--sub)">
+        连贯、正确、速度正常。</p>
+    </div>
+  </div>
+  <p>→ <b>模型权重没问题，显卡没问题，问题 100% 在 FreeToken 的 NVFP4/FP8 计算路径上。</b></p>
+
+  <h2>二、权重转换：逐元素对拍，全部通过</h2>
+  <p>把 FTW 里的张量读出来，和原始 safetensors 按 ModelOpt 的公式反量化后逐元素比较。
+     脚本：<code>verify_ftw_weights.py</code> / <code>verify_ftw_weights2.py</code>。</p>
+  <table>
+    <tr><th>检查项</th><th>类别</th><th>结果</th></tr>
+    <tr><td><code>mlp.down_proj</code> 反量化（5120×17408）</td><td>NVFP4 叶子层</td>
+        <td><span class="tag t-ok">通过</span> weight 字节一致 · weight_scale 一致 · 反量化 max|Δ| =
+            <span class="num ok-num">6.1e-05</span>（相对 6.2e-05，即 fp16 存全局 scale 的舍入）</td></tr>
+    <tr><td><code>linear_attn.out_proj</code>（5120×6144）</td><td>FP8 叶子层</td>
+        <td><span class="tag t-ok">通过</span> 字节一致 · 标量 scale
+            <span class="num">0.0030168807</span> 逐行展开正确 · input_scale
+            <span class="num">0.023018975</span> 保留</td></tr>
+    <tr><td><code>linear_attn.in_proj_qkvz</code>（16384×5120）</td><td>FP8 融合层</td>
+        <td><span class="tag t-ok">通过</span> 拼接顺序正确 · 分段 scale 正确
+            （qkv=<span class="num">0.000972203</span>，z=<span class="num">0.000531878</span>）</td></tr>
+    <tr><td>全部 FTW 张量形状</td><td>结构自洽</td>
+        <td><span class="tag t-ok">通过</span> 含最易错的
+            <code>qkv_proj</code>=<span class="num">14336</span>
+            = 24×256×2(查询+门) + 4×256×2</td></tr>
+  </table>
+  <p><b>FTW 转换产物是正确的</b>，可以放心保留，不需要重新转换。</p>
+
+  <h2>三、已排除的怀疑项</h2>
+  <table>
+    <tr><th>试过的办法</th><th>结果</th></tr>
+    <tr><td>贪心采样（temperature=0）</td><td><span class="tag t-bad">依旧空输出</span> 排除采样参数</td></tr>
+    <tr><td><code>FREETOKEN_DEBUG_DENSE_NVFP4_REF=1</code><br>
+            <span style="font-size:12.5px;color:var(--sub)">NVFP4 内核换成纯 torch 反量化+matmul</span></td>
+        <td><span class="tag t-bad">依旧空输出</span> 排除 NVFP4 triton 内核</td></tr>
+    <tr><td><code>FREETOKEN_DEBUG_FP8_REF=1</code><br>
+            <span style="font-size:12.5px;color:var(--sub)">FP8 内核换成纯 torch</span></td>
+        <td><span class="tag t-bad">依旧空输出</span> 排除 FP8 triton 内核</td></tr>
+    <tr><td><code>FREETOKEN_FORCE_E4M3_EMU=1</code> + 全新 triton 缓存<br>
+            <span style="font-size:12.5px;color:var(--sub)">强制走 e4m3 模拟分支，缓存从零重编译</span></td>
+        <td><span class="tag t-bad">依旧空输出</span> 排除缓存污染与模拟分支选择</td></tr>
+    <tr><td><code>--expert-load serial</code><br>
+            <span style="font-size:12.5px;color:var(--sub)">强制走 Python 读取器而非编译版</span></td>
+        <td><span class="tag t-bad">依旧空输出</span> 排除权重读取入口差异</td></tr>
+    <tr><td><code>--cache-type naive/radix</code>、<code>--page-size 64</code>、<code>--nvfp4-backend</code></td>
+        <td><span class="tag t-bad">无效或不可用</span> marlin/flashinfer 都未安装，只剩 triton</td></tr>
+    <tr><td>GDN 各内核独立单元测试（上一轮已完成）</td>
+        <td><span class="tag t-ok">数值正确</span> 排除 GDN 线性注意力内核</td></tr>
+    <tr><td>RMSNorm 风格核查（读权重分布）</td>
+        <td><span class="tag t-ok">匹配</span> 解码器层是 Gemma 式 (1+w)（均值 −0.033），
+            GDN 内层是标准 RMSNorm（均值 +0.869），代码与之一致</td></tr>
+  </table>
+
+  <h2>四、为什么这块卡跑不了</h2>
+  <div class="card">
+    <ul>
+      <li><b>检查点是 Blackwell 专用。</b>RadixArk 官方 README 明确写：算力兼容性
+          “NVIDIA Blackwell（本检查点在 GB300 上产出并验证）”，运行时仅支持 SGLang，首选 Linux。
+          它是 <b>混合精度 NVFP4</b>：MLP + lm_head 是 NVFP4 <b>W4A4</b>（权重和激活都是 4 bit），
+          注意力是 FP8 W8A8，KV cache 也是 FP8。</li>
+      <li><b>RTX 3090 是 sm_86（Ampere）。</b>Ampere 有 BF16 / INT8 张量核，
+          但<b>没有 FP8 张量核</b>（Hopper 起才有）、<b>更没有 FP4 张量核</b>（Blackwell 才有）。
+          两者都必须用软件模拟。W4A4 还需要把激活也压到 4 bit，在 Ampere 上只能靠整数运算硬凑。</li>
+      <li><b>官方包根本不认这套检查点。</b>安装包里有 <b class="bad-num">7 个文件</b>被手工改过
+          （用安装记录的 SHA256 比对出来的）：
+          <code>layers/base.py</code>、<code>models/quant_linear.py</code>、
+          <code>models/qwen3_5_moe/</code> 下的 <code>__init__.py · config.py · gdn.py ·
+          model.py · moe.py</code>；另外还有个手写的 <code>weight_int4.py</code>
+          直接顶替了官方编译版权重读取器。这些改动是「能让它加载起来」的原因，
+          也是剩下最可疑的一环 —— 但除此之外已经没有可调的开关了。</li>
+      <li><b>这不是调参能解决的。</b>权重对、内核各自单元测试对、参考实现也救不回来 ——
+          说明误差产生在多算子协同或模拟精度累积上，属于引擎在非目标硬件上的路径缺陷，
+          需要厂商修，不是使用者能绕过的。</li>
+    </ul>
+  </div>
+
+  <h2>五、解决方案</h2>
+  <div class="grid">
+    <div class="card" style="margin:0;border-left:5px solid var(--ok)">
+      <div><span class="tag t-ok">方案 A · 推荐</span></div>
+      <h3 style="margin-top:10px">用 llama.cpp 跑 GGUF（已验证可用）</h3>
+      <p style="font-size:13.5px">本机已有现成的 llama.cpp 和 4 个 GGUF，同卡实测
+         <b>41 t/s</b>、输出正确。这是当前唯一能立刻拿到正确结果的路径。</p>
+      <pre><span class="c"># 直接对话（一次性）</span>
+llama-cli.exe ^
+  -m "G:\AI\Qwen3.8-27B-BF16-SSMFIX-UD-Q3_K_XL.gguf" ^
+  -ngl 99 -c 32768 --flash-attn on --temp 0.7
+
+<span class="c"># 或起服务，用 OpenAI 兼容接口</span>
+<span class="c"># 现成脚本：G:\AI\llama-turboquant-windows\start-server.bat</span></pre>
+      <p style="font-size:13px;color:var(--sub);margin-bottom:0">
+        代价：GGUF 是另一次量化，和 NVFP4 不是同一份权重（精度约 IQ3_S/IQ4_XS 级别）。</p>
+    </div>
+    <div class="card" style="margin:0;border-left:5px solid var(--warn)">
+      <div><span class="tag t-warn">方案 B · 可选</span></div>
+      <h3 style="margin-top:10px">换一个 Ampere 能跑的量化格式给 FreeToken</h3>
+      <p style="font-size:13.5px">本机还有 <code>Qwen3.8-27B-int4-AutoRound</code>（纯 W4A16 int4，
+         无 FP8/FP4 激活量化）。这个格式正好是手写读取器最初支持的，理论上不吃 FP4 模拟的亏。
+         需要先转 FTW 再试，结果不保证。</p>
+      <pre>ft.exe checkpoint \
+  --model-path G:\AI\Qwen3.8-27B-int4-AutoRound \
+  --output-path G:\AI\Qwen3.8-27B-int4-FTW</pre>
+      <p style="font-size:13px;color:var(--sub);margin-bottom:0">
+        保留 FreeToken 的速度优势，但需要一次转换 + 一次验证。</p>
+    </div>
+  </div>
+  <div class="card" style="margin-top:14px;border-left:5px solid var(--sub)">
+    <div><span class="tag t-info">方案 C · 不建议</span></div>
+    <h3 style="margin-top:10px">继续挖 FreeToken 的 sm_86 模拟缺陷</h3>
+    <p style="font-size:13.5px;margin-bottom:0">剩下的可疑面是 7 个手改文件 + 16 层 paged-attention
+       的 triton 后端。没有可替换的注意力后端可装（flashinfer / vLLM 在 Windows + sm_86 上都不可用），
+       只能靠逐层对拍激活值硬啃，工作量大且不保证有解。</p>
+  </div>
+
+  <h2>六、本次新增的可复用脚本</h2>
+  <table>
+    <tr><th>脚本</th><th>用途</th></tr>
+    <tr><td><code>probe_quality.py</code></td>
+        <td>对运行中的实例发确定性贪心请求，判断输出是否连贯。支持
+            <code>--launch</code> 自行起服务、<code>--env</code> 注入环境变量、
+            <code>--arg</code> 追加 ft 参数，服务日志落盘到 <code>probe_server.log</code></td></tr>
+    <tr><td><code>verify_ftw_weights.py</code></td>
+        <td>NVFP4 叶子层反量化逐元素对拍（HF safetensors ↔ FTW）</td></tr>
+    <tr><td><code>verify_ftw_weights2.py</code></td>
+        <td>通用版：<code>nvfp4</code> / <code>fp8</code> / <code>fp8fuse</code>
+            三种模式，覆盖叶子层与融合层</td></tr>
+  </table>
+
+  <div class="foot">
+    诊断方法：权重哈希 + 反量化数值对拍 · 运行时逃逸开关 A/B · 跨引擎对照实验 ·
+    包完整性校验（安装记录 SHA256 比对）。<br>
+    关键结论：FTW 转换产物正确、可保留；乱码由引擎在 sm_86 上的 FP8/FP4 模拟路径导致。
+  </div>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>FTW 输出乱码 · 诊断报告</title>
+<style>
+:root{
+  --bg:#f4f6fb; --panel:#ffffff; --panel-2:#fafbfe;
+  --line:#e6eaf2; --line-2:#eef1f7;
+  --text:#111827; --text-2:#374151; --muted:#7a8399;
+  --brand:#2f6bff; --brand-2:#7c5cff;
+  --ok:#0f9d58; --ok-bg:#e8f7ee;
+  --warn:#b7791f; --warn-bg:#fdf6e3;
+  --err:#d93025; --err-bg:#fdecea;
+  --shadow:0 1px 2px rgba(16,24,40,.06), 0 4px 14px rgba(16,24,40,.05);
+  --r:14px; --r-sm:9px;
+  --mono:ui-monospace,"Cascadia Mono","Cascadia Code",Consolas,"JetBrains Mono",monospace;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:
+    radial-gradient(1200px 500px at 12% -10%, #e8efff 0%, rgba(232,239,255,0) 60%),
+    radial-gradient(1000px 460px at 92% -6%, #f0eaff 0%, rgba(240,234,255,0) 58%),
+    var(--bg);
+  color:var(--text);
+  font:14px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei",system-ui,sans-serif;
+  min-height:100vh;-webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:1020px;margin:0 auto;padding:34px 20px 70px}
+h1,h2,h3{margin:0;font-weight:650;letter-spacing:-.01em}
+code{font-family:var(--mono);font-size:12.5px;background:var(--panel-2);
+     border:1px solid var(--line);border-radius:5px;padding:1px 5px}
+.head{margin-bottom:26px}
+.head .kick{font-size:12px;font-weight:600;color:var(--brand);letter-spacing:.08em;text-transform:uppercase}
+.head h1{font-size:27px;margin:7px 0 6px}
+.head .sub{color:var(--muted);font-size:13.5px}
+.verdict{
+  margin:22px 0 28px;padding:20px 22px;border-radius:var(--r);
+  background:var(--panel);border:1px solid var(--line);box-shadow:var(--shadow);
+  border-left:4px solid var(--err);
+}
+.verdict .t{font-size:12px;font-weight:700;color:var(--err);letter-spacing:.06em;margin-bottom:8px}
+.verdict p{margin:0;font-size:16px;font-weight:600;line-height:1.55}
+.verdict .n{margin-top:9px;font-size:13.5px;font-weight:400;color:var(--text-2)}
+section{margin:0 0 30px}
+h2{font-size:17px;margin-bottom:13px;display:flex;align-items:center;gap:9px}
+h2::before{content:"";width:4px;height:17px;border-radius:2px;background:linear-gradient(180deg,var(--brand),var(--brand-2))}
+h3{font-size:14px;margin:18px 0 8px;color:var(--text-2)}
+table{width:100%;border-collapse:separate;border-spacing:0;background:var(--panel);
+      border:1px solid var(--line);border-radius:var(--r);overflow:hidden;box-shadow:var(--shadow)}
+th,td{padding:10px 13px;text-align:left;border-bottom:1px solid var(--line-2);vertical-align:top;font-size:13.2px}
+th{background:var(--panel-2);font-weight:650;font-size:12.3px;color:var(--text-2);white-space:nowrap}
+tr:last-child td{border-bottom:none}
+td.mono,th.mono{font-family:var(--mono);font-size:12.3px}
+.pill{display:inline-block;font-size:11.5px;font-weight:650;padding:2px 8px;border-radius:20px;white-space:nowrap}
+.p-ok{background:var(--ok-bg);color:var(--ok)}
+.p-warn{background:var(--warn-bg);color:var(--warn)}
+.p-err{background:var(--err-bg);color:var(--err)}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);
+      padding:18px 20px;box-shadow:var(--shadow)}
+.card+.card{margin-top:14px}
+.chain{display:flex;flex-wrap:wrap;gap:9px;align-items:center;margin:6px 0 2px}
+.node{background:var(--panel-2);border:1px solid var(--line);border-radius:var(--r-sm);
+      padding:8px 12px;font-size:12.6px}
+.node b{display:block;font-size:11px;color:var(--muted);font-weight:650;margin-bottom:2px}
+.arrow{color:var(--muted);font-size:15px}
+.tok{font-family:var(--mono);background:var(--err-bg);color:var(--err);border-radius:5px;
+     padding:6px 10px;font-size:12.4px;line-height:1.9;word-break:break-all}
+.list{margin:0;padding-left:20px}
+.list li{margin-bottom:7px}
+.hl{color:var(--brand);font-weight:600}
+.note{font-size:12.6px;color:var(--muted);margin-top:9px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:760px){.grid2{grid-template-columns:1fr}}
+.foot{margin-top:34px;padding-top:16px;border-top:1px solid var(--line);
+      font-size:12.3px;color:var(--muted)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="head">
+    <div class="kick">FreeToken · 排障报告</div>
+    <h1>Qwen3.8-27B-NVFP4-FTW 输出乱码 · 根因定位</h1>
+    <div class="sub">RTX 3090（sm_86）× Windows × FreeToken 0.1.2+g141c31a8d &nbsp;·&nbsp; 2026-09-12</div>
+  </div>
+
+  <div class="verdict">
+    <div class="t">结论</div>
+    <p>转换和模型都没有问题，问题在引擎侧：FreeToken 在这台 sm_86 / Windows 机器上跑不通这个模型。</p>
+    <p class="n">模型能加载、能起服务、出词速度正常（~17 tok/s），但<b>从第 1 个 token 起 logits 就是乱的</b>，
+    并且会<b>随机死锁</b>。本机没有第二个 attention 后端可切换，因此无法再往下二分，也无法修复。</p>
+  </div>
+
+  <section>
+    <h2>一、症状（干净服务上稳定复现）</h2>
+    <table>
+      <tr><th>请求</th><th>耗时</th><th>completion_tokens</th><th>返回 text</th></tr>
+      <tr>
+        <td><code>temperature=0</code>（贪心 → <code>torch.argmax</code>）</td>
+        <td class="mono">0.4 s</td><td class="mono">7</td>
+        <td><code>""</code> <span class="pill p-err">空串</span></td>
+      </tr>
+      <tr>
+        <td><code>temperature=1.0, top_k=20, top_p=0.95</code></td>
+        <td class="mono">0.4 s</td><td class="mono">7</td>
+        <td><code>샘··샘中新网····alisierte</code> <span class="pill p-err">乱码</span></td>
+      </tr>
+      <tr>
+        <td>同样参数再跑一次（<code>max_tokens=3</code>）</td>
+        <td class="mono" colspan="2">挂死 &gt; 180 s，<code>ft ctl stats</code> 显示 <code>active=1</code> 不下降</td>
+        <td><span class="pill p-err">死锁</span></td>
+      </tr>
+    </table>
+    <p class="note">同一参数下既可能秒回、也可能永久挂起 —— 非确定性。杀掉客户端也不自愈，只能重启服务。</p>
+  </section>
+
+  <section>
+    <h2>二、「空串」的真相：不是没出词，是出的全是乱码 token</h2>
+    <div class="card">
+      <p style="margin:0 0 12px">OpenAI 接口拿不到 token id（<code>echo</code> / <code>logprobs</code> / <code>return_token_ids</code> 都被拒），
+      改走引擎的离线 API <code>freetoken.llm.LLM</code> 后才看到真实 id：</p>
+      <div class="tok">
+        150910, 28977, 81463, 43106, 158949, 23340, 186356, 99289, 59495, 168392, 157547, 169429, …<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;'··'&nbsp;&nbsp;&nbsp;&nbsp;'·'&nbsp;&nbsp;&nbsp;'="{!!'&nbsp;&nbsp;' sourceMapping'&nbsp;&nbsp;'··'&nbsp;&nbsp;':UIControl'&nbsp;&nbsp;'ciaio'&nbsp;&nbsp;'燕'
+      </div>
+      <div class="chain" style="margin-top:14px">
+        <div class="node"><b>第 0 个 token</b><code>id = 150910</code> → 孤 UTF-8 残字节 <code>'··'</code></div>
+        <div class="arrow">→</div>
+        <div class="node"><b>解码器</b>「不完整 UTF-8 扣留」逻辑</div>
+        <div class="arrow">→</div>
+        <div class="node"><b>整段被吞</b>HTTP 层看到 <code>text:""</code></div>
+      </div>
+      <p class="note">
+        <code>tokenizer/detokenize.py</code> 里：文本以 <code>\ufffd</code> 结尾且不含空格时，
+        <code>find_printable_text()</code> 返回 <code>""</code>，于是全部输出被丢弃。
+      </p>
+      <p style="margin:14px 0 0;font-size:13.4px">
+        乱码 token 是跨语种 + 代码标识符的大杂烩（<code>sourceMapping</code>、<code>:UIControl</code>、
+        <code>ImplOptions</code>、<code>PENDAHUL</code>、<code>aliaierte</code>、<code>稿件来源</code>、<code>애니</code>、<code>ジオ</code>）——
+        典型的 <b>logits 全乱</b>特征。健康的模型对 <code>"The capital of France is"</code>
+        的贪心下一个 token 应该是 <code>" Paris"</code> 级别。
+      </p>
+    </div>
+  </section>
+
+  <section>
+    <h2>三、已排除项（按成本从低到高，已全部实测）</h2>
+    <table>
+      <tr><th>#</th><th>检查项</th><th>结论</th><th>方法 / 证据</th></tr>
+      <tr><td class="mono">1</td><td>源权重质量</td><td><span class="pill p-ok">正常</span></td>
+          <td>SGLang 4×GB300 上 GSM8K <b>97.27%</b>、stop_rate 1.0（<code>qualification.json</code>）</td></tr>
+      <tr><td class="mono">2</td><td>tokenizer</td><td><span class="pill p-ok">正常</span></td>
+          <td><code>prompt_tokens=5</code>，与 "The capital of France is" 吻合</td></tr>
+      <tr><td class="mono">3</td><td>转换正确性（融合张量 / scale / lm_head）</td><td><span class="pill p-ok">逐字节一致</span></td>
+          <td>与源 safetensors 逐张量对比</td></tr>
+      <tr><td class="mono">4</td><td>Triton 工具链</td><td><span class="pill p-ok">正常</span></td>
+          <td>axpy / softmax / bf16-dot 相对误差 1e-6</td></tr>
+      <tr><td class="mono">5</td><td>dense NVFP4 内核</td><td><span class="pill p-ok">已排除</span></td>
+          <td><code>FREETOKEN_DEBUG_DENSE_NVFP4_REF=1</code> 换纯 torch，<b>仍乱码</b></td></tr>
+      <tr><td class="mono">6</td><td>FP8 per-tensor 内核</td><td><span class="pill p-ok">已排除</span></td>
+          <td><code>FREETOKEN_DEBUG_FP8_REF=1</code>，仍乱码</td></tr>
+      <tr><td class="mono">7</td><td><b>GDN prefill chunk 内核</b></td><td><span class="pill p-ok">数值正确</span></td>
+          <td>对比 <code>gdn_reference.py</code> oracle，<code>max|diff| = 2.4e-4</code></td></tr>
+      <tr><td class="mono">8</td><td><b>GDN decode 融合内核 + GQA 映射</b></td><td><span class="pill p-ok">数值正确</span></td>
+          <td><code>max|diff| = 2.9e-5</code>；GQA = <code>repeat_interleave</code>，K 头 0 → v 头 0/1/2 正确</td></tr>
+      <tr><td class="mono">9</td><td><b>causal conv1d</b>（varlen + decode，bf16/fp32）</td><td><span class="pill p-ok">数值正确</span></td>
+          <td>allclose 且 state <b>逐位一致</b></td></tr>
+      <tr><td class="mono">10</td><td><code>--page-size 64</code>（默认 1）</td><td><span class="pill p-ok">无改善</span></td>
+          <td>仍返回空串</td></tr>
+      <tr><td class="mono">11</td><td>KV cache dtype</td><td><span class="pill p-ok">已排除</span></td>
+          <td>引擎用模型 dtype(bf16)，源里 <code>kv_cache_quant_algo: FP8</code> 被忽略</td></tr>
+      <tr><td class="mono">12</td><td>模型适配层（partial RoPE / output gate / q·k RMSNorm）</td><td><span class="pill p-ok">实现正确</span></td>
+          <td><code>rotary_dim = int(256×0.25) = 64</code>；q_proj 按 <code>[2·n·h, kv, kv]</code> 切出 gate，<code>attn×sigmoid(gate)</code></td></tr>
+      <tr><td class="mono">13</td><td>换 attention 后端</td><td><span class="pill p-err">做不到</span></td>
+          <td><code>fa</code> 缺 sgl_kernel、<code>fi</code> 缺 flashinfer、<code>trtllm</code> 缺 sm100</td></tr>
+    </table>
+    <p class="note">
+      注意第 9 项：<b>整条 GDN 链路（48/64 层）在 sm_86 上数值完全正确</b>，
+      连递归状态都逐位一致 —— 这基本排除了「混合线性注意力内核在这台卡上算错」这个最大嫌疑。
+    </p>
+  </section>
+
+  <section>
+    <h2>四、剩余嫌疑人</h2>
+    <div class="card">
+      <p style="margin:0 0 10px">做完上面 13 项后，还可能出错、但本机<b>无法再进一步二分</b>的只剩：</p>
+      <ul class="list">
+        <li><span class="hl">triton paged-attention 后端</span>（16 层全注意力）——
+            <code>kernel/triton/attention.py</code> 的 <code>extend_paged_attention</code> / <code>decode_paged_attention</code>。
+            这是唯一没被覆盖的大 kernel。</li>
+        <li>少数未被参考实现对冲的 norm kernel（q/k RMSNorm 的批量路径等）。</li>
+        <li>模型层间接线（残差 / 位置 id / 最终 norm）—— 与 HF 逐层对齐需要一份可跑的 HF 参考前向，
+            24 GB 显存放不下 27B 的 bf16 反量化版本，此路不通。</li>
+      </ul>
+      <p class="note">要定位到具体哪一行代码，需要厂商在 sm_86 上跑同一份 FTW 权重做对照。</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>五、建议的下一步路线</h2>
+    <div class="grid2">
+      <div class="card">
+        <h3 style="margin-top:0">① 用 llama.cpp + GGUF（最稳）</h3>
+        <p style="margin:0;font-size:13.2px">
+          <code>G:\AI\</code> 下已有 <code>Qwen3.8-27B-BF16-SSMFIX-UD-Q3_K_XL.gguf</code> 等多个 GGUF，
+          llama.cpp 也已下载（<code>llama-b10679-bin-win-cuda-12.4-x64.zip</code>、<code>LammacppStart</code>）。
+          GGUF 对混合 SSM/GDN 模型的支持路径与 FreeToken 完全不同，是绕开本次问题的直接办法。
+        </p>
+      </div>
+      <div class="card">
+        <h3 style="margin-top:0">② 改用 W4A16 量化再喂 FreeToken</h3>
+        <p style="margin:0;font-size:13.2px">
+          <code>G:\AI\Qwen3.8-27B-int4-AutoRound</code> 是 W4A16（int4 权重 + bf16 激活）。
+          W4A16 在 sm_86 上不依赖 FP4 硬件路径，比本次的 W4A4 NVFP4 回退链可靠得多。
+        </p>
+      </div>
+      <div class="card">
+        <h3 style="margin-top:0">③ 反馈上游</h3>
+        <p style="margin:0;font-size:13.2px">
+          厂商验证配置是 <b>Linux + 4×GB300 + TP=4</b>；<b>Windows + sm_86 + TP=1</b> 属未验证路径。
+          把本报告的复现步骤与 token id 样本一起提给 FreeToken 团队，定位成本最低。
+        </p>
+      </div>
+      <div class="card">
+        <h3 style="margin-top:0">④ 不建议做的事</h3>
+        <p style="margin:0;font-size:13.2px">
+          继续调 <code>--memory-ratio</code> / <code>--cache-type</code> / <code>--page-size</code> /
+          温度等参数。<b>这些都已经验证过，改不动这个问题</b> —— 那是「参数没调好」和「内核算错」的区别。
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>六、附：本机事实速查</h2>
+    <table>
+      <tr><th>项</th><th>值</th></tr>
+      <tr><td>模型</td><td class="mono">Qwen/Qwen3.8-27B · Qwen3_5ForConditionalGeneration · 无 MoE（dense 27B）</td></tr>
+      <tr><td>层结构</td><td class="mono">64 层 = 48 GDN(linear_attention) + 16 full_attention（每 4 层一个）</td></tr>
+      <tr><td>注意力</td><td class="mono">hidden 5120 · 24 Q 头 / 4 KV 头 · head_dim 256 · output_gate=silu</td></tr>
+      <tr><td>GDN</td><td class="mono">k:(16 头×128) · v:(48 头×128) · conv kernel 4 · 单请求状态 0.14 GiB</td></tr>
+      <tr><td>位置编码</td><td class="mono">partial_rotary_factor 0.25（64/256 维）· mrope_interleaved · rope_theta 1e7</td></tr>
+      <tr><td>量化</td><td class="mono">modelopt MIXED_PRECISION：投影 FP8 · MLP gate/up/down NVFP4 group_size=16</td></tr>
+      <tr><td>权重 / 显存</td><td class="mono">18.78 GiB 权重 · 加载后仅剩 ~1.0 GiB 空闲 · KV 1.72～2.97 GiB</td></tr>
+      <tr><td>采样默认值</td><td class="mono">T=1.0 / top_k=20 / top_p=0.95（来自 generation_config，与资格测试一致）</td></tr>
+      <tr><td>可用启动参数</td><td class="mono">naive + ratio 0.957 + 并发 1 → KV 2.97 GiB（可正常起服务）</td></tr>
+    </table>
+  </section>
+
+  <div class="foot">
+    由「大表哥」生成 · 所有结论均来自本机实测，未做推测性结论。
+    配套工具：<code>ftw-tool/</code>（图形界面 + 一键启动脚本）· 复用配方见技能 <code>freetoken-ftw-ops</code>。
+  </div>
+
+</div>
+</body>
+</html>

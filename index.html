@@ -1,0 +1,3717 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<title>FreeToken 工具箱 · 转换 / 运行 / 日志</title>
+<style>
+:root{
+  --bg:#f4f6fb; --panel:#ffffff; --panel-2:#fafbfe;
+  --line:#e6eaf2; --line-2:#eef1f7;
+  --text:#111827; --text-2:#374151; --muted:#7a8399;
+  --brand:#2f6bff; --brand-2:#7c5cff;
+  --ok:#0f9d58; --ok-bg:#e8f7ee;
+  --warn:#b7791f; --warn-bg:#fdf6e3;
+  --err:#d93025; --err-bg:#fdecea;
+  --shadow:0 1px 2px rgba(16,24,40,.06), 0 4px 14px rgba(16,24,40,.05);
+  --shadow-lg:0 10px 40px rgba(16,24,40,.14);
+  --r:14px; --r-sm:9px;
+  --mono:ui-monospace,"Cascadia Mono","Cascadia Code",Consolas,"JetBrains Mono",monospace;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:
+    radial-gradient(1200px 500px at 12% -10%, #e8efff 0%, rgba(232,239,255,0) 60%),
+    radial-gradient(1000px 460px at 92% -6%, #f0eaff 0%, rgba(240,234,255,0) 58%),
+    var(--bg);
+  color:var(--text);
+  font:14px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei",system-ui,sans-serif;
+  min-height:100vh;
+  -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3,h4{margin:0;font-weight:650;letter-spacing:-.01em}
+a{color:var(--brand);text-decoration:none}
+code{font-family:var(--mono);font-size:12.5px}
+
+/* ---------- top bar ---------- */
+.topbar{
+  display:flex;align-items:center;justify-content:space-between;gap:20px;
+  padding:20px 28px 16px;flex-wrap:wrap;
+}
+.brand{display:flex;align-items:center;gap:14px}
+.logo{
+  width:46px;height:46px;border-radius:13px;flex:0 0 auto;
+  background:linear-gradient(135deg,var(--brand),var(--brand-2));
+  color:#fff;font-weight:800;font-size:15px;letter-spacing:.5px;
+  display:grid;place-items:center;
+  box-shadow:0 6px 18px rgba(47,107,255,.32);
+}
+.brand h1{font-size:19px}
+.brand .sub{color:var(--muted);font-size:12.5px;margin-top:1px}
+.pills{display:flex;gap:9px;flex-wrap:wrap}
+.pill{
+  display:inline-flex;align-items:center;gap:7px;
+  background:var(--panel);border:1px solid var(--line);
+  padding:7px 13px;border-radius:999px;font-size:12.5px;color:var(--text-2);
+  box-shadow:var(--shadow);white-space:nowrap;
+}
+.pill b{font-weight:600;color:var(--text)}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--muted);flex:0 0 auto}
+.dot.ok{background:var(--ok)} .dot.warn{background:var(--warn)} .dot.err{background:var(--err)}
+.dot.pulse{animation:pulse 1.6s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.28}}
+
+/* ---------- tabs ---------- */
+.tabs{display:flex;gap:6px;padding:0 28px;flex-wrap:wrap}
+.tab{
+  border:none;background:transparent;cursor:pointer;
+  padding:10px 17px;border-radius:10px 10px 0 0;
+  font:inherit;font-weight:600;color:var(--muted);
+  border-bottom:2.5px solid transparent;transition:.16s;
+}
+.tab:hover{color:var(--text-2);background:rgba(255,255,255,.6)}
+.tab.active{color:var(--brand);border-bottom-color:var(--brand);background:var(--panel)}
+
+.wrap{padding:0 28px 40px;max-width:1560px;margin:0 auto}
+main{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);
+  box-shadow:var(--shadow);padding:22px;margin:0 28px 40px;max-width:1560px}
+main.bare{margin:0 28px 40px}
+.pane{display:none;animation:fade .18s ease}
+.pane.active{display:block}
+@keyframes fade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+
+/* ---------- layout ---------- */
+.grid{display:grid;gap:18px}
+.grid.c2{grid-template-columns:minmax(0,1.06fr) minmax(0,.94fr)}
+.grid.c2w{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+@media(max-width:1080px){.grid.c2,.grid.c2w{grid-template-columns:1fr}}
+.col{display:flex;flex-direction:column;gap:16px;min-width:0}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.row.tight{gap:7px}
+.spacer{flex:1}
+
+/* ---------- card ---------- */
+.card{background:var(--panel-2);border:1px solid var(--line);border-radius:var(--r);padding:16px}
+.card.flat{background:var(--panel)}
+.card h3{font-size:13.5px;display:flex;align-items:center;gap:8px;margin-bottom:12px}
+.card h3 .n{
+  width:20px;height:20px;border-radius:6px;background:linear-gradient(135deg,var(--brand),var(--brand-2));
+  color:#fff;font-size:11px;display:grid;place-items:center;font-weight:700;flex:0 0 auto;
+}
+.hint{color:var(--muted);font-size:12px;margin-top:6px;line-height:1.55}
+
+/* ---------- form ---------- */
+label.f{display:block;margin-bottom:12px}
+label.f:last-child{margin-bottom:0}
+label.f > span.lb{display:block;font-size:12px;font-weight:600;color:var(--text-2);margin-bottom:5px}
+label.f > span.lb em{font-style:normal;color:var(--muted);font-weight:400}
+input[type=text],input[type=number],select,textarea{
+  width:100%;padding:9px 11px;border:1px solid var(--line);border-radius:var(--r-sm);
+  font:inherit;color:var(--text);background:#fff;transition:.15s;outline:none;
+}
+input:focus,select:focus,textarea:focus{border-color:var(--brand);box-shadow:0 0 0 3px rgba(47,107,255,.13)}
+textarea{resize:vertical;font-family:var(--mono);font-size:12.5px;line-height:1.55}
+input[readonly]{background:var(--panel-2);color:var(--text-2)}
+.f3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.f2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+@media(max-width:760px){.f3,.f2{grid-template-columns:1fr}}
+.pathrow{display:flex;gap:8px}
+.pathrow input{flex:1;min-width:0;font-family:var(--mono);font-size:12.5px}
+
+/* ---------- buttons ---------- */
+button.btn{
+  border:1px solid var(--line);background:#fff;color:var(--text-2);
+  padding:9px 15px;border-radius:var(--r-sm);font:inherit;font-weight:600;font-size:13px;
+  cursor:pointer;transition:.15s;white-space:nowrap;display:inline-flex;align-items:center;gap:7px;
+}
+button.btn:hover:not(:disabled){border-color:#cfd7e6;background:#f7f9fd;color:var(--text)}
+button.btn:disabled{opacity:.45;cursor:not-allowed}
+button.btn.primary{
+  background:linear-gradient(135deg,var(--brand),var(--brand-2));border:none;color:#fff;
+  box-shadow:0 4px 14px rgba(47,107,255,.3);
+}
+button.btn.primary:hover:not(:disabled){filter:brightness(1.06);box-shadow:0 6px 20px rgba(47,107,255,.38)}
+button.btn.danger{color:var(--err);border-color:#f3c9c4}
+button.btn.danger:hover:not(:disabled){background:var(--err-bg)}
+button.btn.sm{padding:6px 11px;font-size:12px}
+button.btn.lg{padding:13px 22px;font-size:14.5px;width:100%;justify-content:center}
+
+/* ---------- badges ---------- */
+.badge{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:999px;
+  font-size:11.5px;font-weight:600;background:#eef2f9;color:var(--text-2);border:1px solid var(--line)}
+.badge.ok{background:var(--ok-bg);color:var(--ok);border-color:#c6ebd6}
+.badge.warn{background:var(--warn-bg);color:var(--warn);border-color:#f0e0b8}
+.badge.err{background:var(--err-bg);color:var(--err);border-color:#f5cdc8}
+.badge.brand{background:#e9f0ff;color:var(--brand);border-color:#cddcff}
+
+/* ---------- info strip ---------- */
+.strip{display:grid;grid-template-columns:repeat(auto-fit,minmax(112px,1fr));gap:10px;margin-top:12px}
+.strip .kv{background:#fff;border:1px solid var(--line);border-radius:var(--r-sm);padding:9px 11px}
+.strip .kv i{display:block;font-style:normal;font-size:11px;color:var(--muted);margin-bottom:2px}
+.strip .kv b{font-size:14px;font-weight:650;letter-spacing:-.01em}
+.strip .kv b.sm{font-size:12.5px;font-family:var(--mono);word-break:break-all}
+
+/* ---------- progress ---------- */
+.bar{height:9px;border-radius:999px;background:#e9edf5;overflow:hidden;position:relative}
+.bar > i{display:block;height:100%;width:0;border-radius:999px;
+  background:linear-gradient(90deg,var(--brand),var(--brand-2));transition:width .35s ease}
+.bar.indet > i{width:38%;animation:slide 1.25s ease-in-out infinite}
+@keyframes slide{0%{margin-left:-38%}100%{margin-left:100%}}
+.proghead{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;gap:10px}
+.proghead b{font-size:20px;letter-spacing:-.02em}
+.proghead span{color:var(--muted);font-size:12px}
+
+/* ---------- console ---------- */
+.console{
+  background:#f8fafc;border:1px solid var(--line);border-radius:var(--r-sm);
+  font-family:var(--mono);font-size:12px;line-height:1.62;
+  height:340px;overflow:auto;padding:11px 13px;white-space:pre-wrap;word-break:break-all;
+  color:#33415c;
+}
+.console.tall{height:420px}
+.console .l-err{color:var(--err);font-weight:600}
+.console .l-warn{color:var(--warn)}
+.console .l-ok{color:var(--ok);font-weight:600}
+.console .l-sys{color:var(--muted);font-style:italic}
+.console .l-prog{color:#4a5a75}
+.console:empty::before{content:"等待输出…";color:var(--muted)}
+
+/* ---------- 运行服务：状态条 ---------- */
+.svcbar{
+  display:flex;align-items:center;gap:16px;flex-wrap:wrap;
+  padding:15px 18px;border-radius:var(--r);
+  border:1px solid #d8e3ff;background:linear-gradient(135deg,#f4f8ff,#fbf8ff);
+  box-shadow:var(--shadow);
+}
+.svcbar.idle{border-color:var(--line);background:linear-gradient(135deg,#fbfcfe,#fdfdfe)}
+.svcbar.bad{border-color:#f5cdc8;background:linear-gradient(135deg,#fef7f6,#fffafa)}
+.svcbar.good{border-color:#c9ebd8;background:linear-gradient(135deg,#f5fdf8,#fbfefc)}
+.svcbar .lead{display:flex;align-items:center;gap:11px;min-width:190px}
+.svcbar .ring{
+  width:12px;height:12px;border-radius:50%;background:var(--muted);flex:0 0 auto;
+  box-shadow:0 0 0 4px rgba(122,131,153,.14);
+}
+.svcbar.good .ring{background:var(--ok);box-shadow:0 0 0 4px var(--ok-bg);animation:pulse 1.8s ease-in-out infinite}
+.svcbar.bad  .ring{background:var(--err);box-shadow:0 0 0 4px var(--err-bg)}
+.svcbar.busy .ring{background:var(--warn);box-shadow:0 0 0 4px var(--warn-bg);animation:pulse 1.4s ease-in-out infinite}
+.svcbar .lead .t1{font-size:14.5px;font-weight:650;letter-spacing:-.01em}
+.svcbar .lead .t2{font-size:11.5px;color:var(--muted);margin-top:1px}
+.svcbar .facts{display:flex;gap:18px;flex-wrap:wrap;flex:1}
+.svcbar .facts .f{display:flex;flex-direction:column;gap:1px;min-width:74px}
+.svcbar .facts .f i{font-style:normal;font-size:11px;color:var(--muted)}
+.svcbar .facts .f b{font-size:13px;font-weight:650;font-family:var(--mono)}
+.svcbar .acts{display:flex;gap:8px;flex-wrap:wrap}
+
+/* ---------- 运行服务：日志工具条 ---------- */
+.logtools{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.logtools .seg{display:inline-flex;border:1px solid var(--line);border-radius:999px;overflow:hidden;background:#fff}
+.logtools .seg button{
+  border:0;background:#fff;color:var(--muted);font-size:12px;padding:5px 11px;cursor:pointer;
+  font-family:inherit;transition:.12s;
+}
+.logtools .seg button + button{border-left:1px solid var(--line)}
+.logtools .seg button:hover{color:var(--text-2);background:#f7f9fd}
+.logtools .seg button.on{background:#eef4ff;color:var(--brand);font-weight:650}
+.stage{
+  display:inline-flex;align-items:center;gap:7px;padding:5px 12px;border-radius:999px;
+  font-size:12px;font-weight:650;border:1px solid var(--line);background:#fff;color:var(--text-2);
+}
+.stage.busy{background:var(--warn-bg);color:var(--warn);border-color:#f0e0b8}
+.stage.good{background:var(--ok-bg);color:var(--ok);border-color:#c6ebd6}
+.stage.bad{background:var(--err-bg);color:var(--err);border-color:#f5cdc8}
+.loadbar{height:6px;border-radius:999px;background:#e9edf5;overflow:hidden;margin:2px 0 12px}
+.loadbar > i{display:block;height:100%;width:0;border-radius:999px;
+  background:linear-gradient(90deg,var(--brand),var(--brand-2));transition:width .35s ease}
+.loadbar.indet > i{width:34%;animation:slide 1.3s ease-in-out infinite}
+.console.big{height:560px}
+.btn:disabled{opacity:.42;cursor:not-allowed;filter:grayscale(.5);box-shadow:none}
+.btn.primary:disabled{background:#c7d3e8;border-color:#c7d3e8;color:#fff}
+.console .l-stage{color:var(--brand);font-weight:650}
+.logtools input.find{
+  border:1px solid var(--line);border-radius:999px;padding:5px 12px;font-size:12px;
+  font-family:var(--mono);min-width:150px;background:#fff;color:var(--text);
+}
+.logtools input.find:focus{outline:none;border-color:var(--brand)}
+.console .hit{background:#fff3bf;border-radius:3px}
+
+/* ---------- picker modal ---------- */
+.mask{position:fixed;inset:0;background:rgba(17,24,39,.4);backdrop-filter:blur(3px);
+  display:none;align-items:center;justify-content:center;z-index:60;padding:22px}
+.mask.show{display:flex}
+.modal{background:var(--panel);border-radius:16px;box-shadow:var(--shadow-lg);
+  width:min(760px,100%);max-height:86vh;display:flex;flex-direction:column;overflow:hidden}
+.modal header{padding:16px 20px;border-bottom:1px solid var(--line);display:flex;
+  align-items:center;justify-content:space-between;gap:12px}
+.modal header h3{font-size:15px}
+.modal .crumb{padding:11px 20px;border-bottom:1px solid var(--line);background:var(--panel-2);
+  font-family:var(--mono);font-size:12px;color:var(--text-2);word-break:break-all}
+.modal .list{overflow:auto;padding:8px;min-height:180px;flex:1}
+.modal .item{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:var(--r-sm);
+  cursor:pointer;transition:.12s}
+.modal .item:hover{background:#f1f5fd}
+.modal .item .ico{width:26px;height:26px;border-radius:7px;background:#eef2f9;display:grid;
+  place-items:center;font-size:13px;flex:0 0 auto}
+.modal .item .ico.model{background:linear-gradient(135deg,#e9f0ff,#f0eaff);color:var(--brand)}
+.modal .item .nm{flex:1;min-width:0;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.modal .item .mt{color:var(--muted);font-size:11.5px;flex:0 0 auto}
+.modal footer{padding:13px 20px;border-top:1px solid var(--line);display:flex;
+  align-items:center;gap:10px;background:var(--panel-2)}
+.shortcuts{display:flex;gap:6px;flex-wrap:wrap}
+.chip{cursor:pointer;border:1px solid var(--line);background:#fff;border-radius:999px;
+  padding:3px 10px;font-size:11.5px;color:var(--text-2);font-family:var(--mono)}
+.chip:hover{border-color:var(--brand);color:var(--brand)}
+
+/* ---------- chat ---------- */
+.chat{display:flex;flex-direction:column;gap:10px;height:100%}
+.msg{border:1px solid var(--line);border-radius:var(--r-sm);padding:11px 13px;background:#fff}
+.msg.user{background:#f2f6ff;border-color:#dbe6ff}
+.msg .who{font-size:11px;font-weight:700;color:var(--muted);margin-bottom:5px;letter-spacing:.03em}
+.msg .body{white-space:pre-wrap;word-break:break-word;font-size:13.5px;line-height:1.68}
+.msg .body.think{color:#6b7280;font-size:12.5px;border-left:3px solid #e6eaf2;padding-left:10px;
+  font-family:var(--mono);max-height:190px;overflow:auto}
+.chatlog{flex:1;overflow:auto;display:flex;flex-direction:column;gap:10px;padding:2px;min-height:200px;max-height:440px}
+.thinkblock{margin-bottom:8px}
+textarea.chatin{border-radius:var(--r-sm)}
+
+/* ---------- model cards ---------- */
+.mcards{display:grid;grid-template-columns:repeat(auto-fill,minmax(285px,1fr));gap:13px}
+.mcard{border:1px solid var(--line);border-radius:var(--r);padding:14px;background:#fff;
+  display:flex;flex-direction:column;gap:9px;transition:.16s}
+.mcard:hover{box-shadow:var(--shadow);border-color:#d6deee;transform:translateY(-1px)}
+.mcard .t{font-weight:650;font-size:13.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mcard .p{font-family:var(--mono);font-size:11.5px;color:var(--muted);word-break:break-all;
+  max-height:34px;overflow:hidden;line-height:1.45}
+.mcard .meta{display:flex;gap:6px;flex-wrap:wrap}
+.mcard .acts{display:flex;gap:7px;margin-top:2px;flex-wrap:wrap}
+
+/* ---------- 启动方案表 ---------- */
+.opts{margin-top:12px;border:1px solid var(--line);border-radius:var(--r-sm);overflow:hidden;background:#fff}
+.opts table{width:100%;border-collapse:collapse;font-size:12px}
+.opts th{background:var(--panel-2);color:var(--muted);font-weight:600;text-align:left;
+  padding:7px 10px;border-bottom:1px solid var(--line);font-size:11.5px;white-space:nowrap}
+.opts td{padding:7px 10px;border-bottom:1px solid var(--line-2);white-space:nowrap}
+.opts tr:last-child td{border-bottom:none}
+.opts tr.ok{cursor:pointer;transition:.12s}
+.opts tr.ok:hover{background:#f5f8ff}
+.opts tr.bad{opacity:.45}
+.opts tr.bad td{color:var(--muted)}
+.opts tr.pick{background:#eef4ff}
+.opts tr.pick td:first-child{box-shadow:inset 3px 0 0 var(--brand)}
+
+/* ---------- misc ---------- */
+.note{border-radius:var(--r-sm);padding:10px 13px;font-size:12.5px;line-height:1.6;display:flex;gap:9px}
+.note.info{background:#eff5ff;color:#2c4a86;border:1px solid #d9e5ff}
+.note.warn{background:var(--warn-bg);color:#8a5b12;border:1px solid #f2e3bb}
+.note.err{background:var(--err-bg);color:#9b2418;border:1px solid #f7d2cd}
+.note.ok{background:var(--ok-bg);color:#0b6b3c;border:1px solid #c9ebd8}
+.empty{text-align:center;color:var(--muted);padding:34px 12px;font-size:13px}
+.divider{height:1px;background:var(--line);margin:14px 0}
+.cmdbox{background:#f8fafc;border:1px solid var(--line);border-radius:var(--r-sm);
+  padding:10px 12px;font-family:var(--mono);font-size:11.5px;line-height:1.6;
+  white-space:pre-wrap;word-break:break-all;color:#33415c;max-height:150px;overflow:auto}
+#toast{position:fixed;right:22px;bottom:22px;display:flex;flex-direction:column;gap:9px;z-index:80}
+.toast{background:#111827;color:#fff;border-radius:10px;padding:11px 16px;font-size:13px;
+  box-shadow:var(--shadow-lg);animation:up .22s ease;max-width:420px}
+.toast.ok{background:#0b6b3c} .toast.err{background:#9b2418} .toast.warn{background:#8a5b12}
+@keyframes up{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.spin{width:13px;height:13px;border:2px solid rgba(0,0,0,.15);border-top-color:var(--brand);
+  border-radius:50%;animation:rot .7s linear infinite;display:inline-block}
+@keyframes rot{to{transform:rotate(360deg)}}
+.hidden{display:none !important}
+.kbd{font-family:var(--mono);font-size:11px;background:#eef2f9;border:1px solid var(--line);
+  border-radius:5px;padding:1px 5px;color:var(--text-2)}
+
+/* ===================================================================== *
+ *  控制台（深色仪表盘）—— 参照设计稿，自成一套色板，不污染浅色主体
+ * ===================================================================== */
+main.dark{background:#0b0d12;border-color:#20263a;padding:0;overflow:hidden}
+.dash{
+  --bp:#12161f; --bp2:#171c27; --bl:#232a3a; --bl2:#1b2130;
+  --ft:#e9ecf3; --ft2:#98a2b6; --fm:#68728a;
+  --br:#4d8cff; --br2:#8b6bff; --ok:#35d39a; --warn:#f2b03d; --err:#ff6b6b;
+  color:var(--ft); padding:22px 24px 26px; font-size:13.5px;
+}
+.dash .dhead{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:18px}
+.dash .dhead h2{font-size:21px;letter-spacing:-.02em;font-weight:650}
+.dash .dhead .dsub{color:var(--fm);font-size:12.5px;margin-top:3px}
+.dash .live{display:inline-flex;align-items:center;gap:7px;padding:6px 13px;border-radius:999px;
+  background:var(--bp2);border:1px solid var(--bl);font-size:12px;color:var(--ft2)}
+.dash .live .pd{width:7px;height:7px;border-radius:50%;background:var(--ok);animation:pulse 1.6s infinite}
+.dash .live.off .pd{background:var(--fm);animation:none}
+
+/* --- KPI --- */
+.dash .kpis{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-bottom:16px}
+@media(max-width:900px){.dash .kpis{grid-template-columns:1fr}}
+.dash .kpi{background:var(--bp);border:1px solid var(--bl);border-radius:14px;padding:16px 18px}
+.dash .kpi i{display:block;font-style:normal;font-size:12px;color:var(--fm);margin-bottom:8px}
+.dash .kpi b{font-size:23px;font-weight:650;letter-spacing:-.02em;display:block;font-family:var(--mono)}
+.dash .kpi b.g{color:var(--ok)}
+.dash .kpi .sm{font-size:11.5px;color:var(--fm);margin-top:7px;line-height:1.5}
+
+/* --- 引擎卡片 --- */
+.dash .eng{background:var(--bp);border:1px solid var(--bl);border-radius:16px;padding:15px 18px;
+  margin-bottom:12px;transition:.18s}
+.dash .eng.on{border-color:#2c5aa8;box-shadow:0 0 0 1px rgba(77,140,255,.16)}
+.dash .eng.bad{border-color:#5a2a2a}
+.dash .eng .top{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.dash .eng .ico{width:44px;height:44px;border-radius:12px;display:grid;place-items:center;
+  font-size:15px;font-weight:800;color:#fff;flex:0 0 auto;letter-spacing:.5px;
+  background:linear-gradient(135deg,var(--br),var(--br2));box-shadow:0 6px 18px rgba(77,140,255,.24)}
+.dash .eng .ico.tq{background:linear-gradient(135deg,#f0932b,#e2504a);box-shadow:0 6px 18px rgba(226,80,74,.24)}
+.dash .eng .ico.lc{background:linear-gradient(135deg,#2fb3a0,#4d8cff);box-shadow:0 6px 18px rgba(47,179,160,.24)}
+.dash .eng .nm{flex:1;min-width:170px}
+.dash .eng .nm .t{font-size:14.5px;font-weight:650}
+.dash .eng .nm .m{font-size:11.5px;color:var(--fm);margin-top:4px;font-family:var(--mono);
+  word-break:break-all;line-height:1.5}
+.dash .eng .acts{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.dash .chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:9px}
+.dash .chipd{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:999px;
+  font-size:11px;background:var(--bp2);border:1px solid var(--bl);color:var(--ft2);
+  font-family:var(--mono);white-space:nowrap}
+.dash .chipd.hl{border-color:#2c5aa8;color:#8ab4ff;background:#111b2e}
+
+/* --- 状态徽标 --- */
+.dash .st{display:inline-flex;align-items:center;gap:6px;padding:4px 11px;border-radius:999px;
+  font-size:11.5px;font-weight:600;background:var(--bp2);border:1px solid var(--bl);
+  color:var(--ft2);white-space:nowrap}
+.dash .st::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--fm);flex:0 0 auto}
+.dash .st.ok{color:var(--ok);border-color:#1f5340;background:#0f231c}
+.dash .st.ok::before{background:var(--ok);animation:pulse 1.8s infinite}
+.dash .st.load{color:var(--warn);border-color:#5a4520;background:#221a0c}
+.dash .st.load::before{background:var(--warn);animation:pulse 1.2s infinite}
+.dash .st.bad{color:var(--err);border-color:#5c2b2b;background:#230f0f}
+.dash .st.bad::before{background:var(--err)}
+
+/* --- 深色按钮 --- */
+.dash button.db{border:1px solid var(--bl);background:var(--bp2);color:var(--ft);
+  padding:8px 16px;border-radius:9px;font:inherit;font-weight:600;font-size:13px;
+  cursor:pointer;transition:.15s;white-space:nowrap;display:inline-flex;align-items:center;gap:7px}
+.dash button.db:hover:not(:disabled){background:#212838;border-color:#33405a}
+.dash button.db:disabled{opacity:.38;cursor:not-allowed}
+.dash button.db.go{background:linear-gradient(135deg,var(--br),var(--br2));border:none;color:#fff;
+  box-shadow:0 4px 16px rgba(77,140,255,.3)}
+.dash button.db.go:hover:not(:disabled){filter:brightness(1.08)}
+.dash button.db.stop{color:var(--err);border-color:#4a2626}
+.dash button.db.stop:hover:not(:disabled){background:#230f0f;border-color:#7a3a3a}
+.dash button.db.sm{padding:5px 11px;font-size:12px}
+
+/* --- 配置区 --- */
+.dash .cfg{display:grid;grid-template-columns:repeat(auto-fit,minmax(185px,1fr));gap:12px;
+  margin-top:14px;padding-top:14px;border-top:1px solid var(--bl2)}
+.dash .cfg.wide{grid-template-columns:repeat(auto-fit,minmax(240px,1fr))}
+.dash label.df{display:block;margin:0}
+.dash label.df > span{display:block;font-size:11.5px;color:var(--fm);margin-bottom:5px;font-weight:600}
+.dash label.df > span em{font-style:normal;color:#4d5a70}
+.dash input[type=text],.dash input[type=number],.dash select{
+  width:100%;padding:8px 11px;border:1px solid var(--bl);border-radius:9px;font:inherit;
+  font-size:12.5px;background:#0e131c;color:var(--ft);outline:none;transition:.15s}
+.dash input:focus,.dash select:focus{border-color:var(--br);box-shadow:0 0 0 3px rgba(77,140,255,.16)}
+.dash input[readonly]{background:#0a0e15;color:var(--ft2)}
+.dash .prow{display:flex;gap:7px}
+.dash .prow input{flex:1;min-width:0;font-family:var(--mono);font-size:12px}
+.dash .note2{border-radius:10px;padding:9px 12px;font-size:12px;line-height:1.6;display:flex;gap:8px;
+  margin-top:11px;border:1px solid var(--bl);background:var(--bp2);color:var(--ft2)}
+.dash .note2.warn{background:#221a0c;border-color:#5a4520;color:#e8c37a}
+.dash .note2.err{background:#230f0f;border-color:#5c2b2b;color:#ff9d9d}
+.dash .note2.ok{background:#0f231c;border-color:#1f5340;color:#7fe0bb}
+.dash .note2 a{color:inherit;text-decoration:underline}
+
+/* --- 硬件 / 环形仪表 --- */
+.dash .hw{display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin:18px 0 14px;
+  color:var(--fm);font-size:12.5px;font-family:var(--mono)}
+.dash .rings{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+@media(max-width:980px){.dash .rings{grid-template-columns:repeat(2,1fr)}}
+.dash .ring{background:var(--bp);border:1px solid var(--bl);border-radius:16px;padding:15px 16px 14px}
+.dash .ring .rl{display:flex;justify-content:space-between;align-items:center;
+  font-size:12px;color:var(--fm);margin-bottom:10px;gap:8px}
+.dash .ring .rl span:last-child{font-size:10.5px;font-family:var(--mono);opacity:.8}
+.dash .rg{position:relative;width:126px;height:126px;margin:0 auto}
+.dash .rg .rv{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  font-size:27px;font-weight:650;letter-spacing:-.02em;font-family:var(--mono)}
+.dash .rg .rv em{font-style:normal;font-size:13px;font-weight:500;color:var(--fm);margin:8px 0 0 1px}
+.dash .ring .rf{font-size:11.5px;color:var(--fm);margin-top:9px;font-family:var(--mono);text-align:center}
+
+/* --- 日志 --- */
+.dash .logs{background:#080a0e;border:1px solid var(--bl);border-radius:14px;margin-top:16px;overflow:hidden}
+.dash .logs .lh{display:flex;align-items:center;gap:8px;padding:11px 14px;
+  border-bottom:1px solid var(--bl2);background:var(--bp);flex-wrap:wrap}
+.dash .e-seg{display:inline-flex;border:1px solid var(--bl);border-radius:999px;overflow:hidden}
+.dash .e-seg button{border:0;background:transparent;color:var(--fm);font-size:12px;padding:5px 12px;
+  cursor:pointer;font-family:inherit;transition:.12s}
+.dash .e-seg button+button{border-left:1px solid var(--bl)}
+.dash .e-seg button:hover{color:var(--ft2)}
+.dash .e-seg button.on{background:#1b2942;color:#8ab4ff;font-weight:650}
+.dash input.find2{border:1px solid var(--bl);border-radius:999px;padding:5px 12px;font-size:12px;
+  font-family:var(--mono);min-width:150px;background:#0e131c;color:var(--ft);outline:none}
+.dash input.find2:focus{border-color:var(--br)}
+.dash .console2{height:430px;overflow:auto;padding:12px 14px;font-family:var(--mono);font-size:12px;
+  line-height:1.62;white-space:pre-wrap;word-break:break-all;color:#b9c4d6;background:#080a0e}
+.dash .console2:empty::before{content:"等待输出…";color:var(--fm)}
+.dash .console2 .l-err{color:#ff8a8a;font-weight:600}
+.dash .console2 .l-warn{color:#f2c14e}
+.dash .console2 .l-ok{color:#4ee0a5;font-weight:600}
+.dash .console2 .l-sys{color:#68728a;font-style:italic}
+.dash .console2 .l-prog{color:#7d8aa0}
+.dash .console2 .l-stage{color:#6ea8ff;font-weight:650}
+.dash .console2 .hit{background:#3d3a1a;border-radius:3px}
+.dash .empty2{text-align:center;color:var(--fm);padding:40px 12px;font-size:13px}
+.dash .srcs{color:var(--fm);font-size:11.5px;margin-top:16px;line-height:1.8;font-family:var(--mono)}
+.dash .srcs a{color:#5d8fe0}
+
+/* ===================== 控制台卡片折叠（修复收起配置） ===================== */
+.eng:not(.open) .cfgwrap{display:none}
+.cfgwrap{animation:cfgIn .16s ease}
+@keyframes cfgIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+
+/* ===================== 退出工具 ===================== */
+.t-quit{margin-left:10px;border:1px solid #e3a3a3;color:#d65a5a;background:#fff}
+.t-quit:hover{background:#fff3f3}
+
+/* ===================== 对话浮层（llama.cpp 风格） ===================== */
+.chat-overlay{position:fixed;inset:0;background:rgba(16,20,30,.5);display:none;z-index:95;align-items:center;justify-content:center}
+.chat-overlay.show{display:flex;animation:ovIn .18s ease}
+@keyframes ovIn{from{opacity:0}to{opacity:1}}
+.chat-box{width:min(900px,95vw);height:min(88vh,900px);background:#fbfcfe;border-radius:16px;box-shadow:0 26px 80px rgba(0,0,0,.45);display:flex;flex-direction:column;overflow:hidden;font-family:inherit}
+.chat-head{display:flex;align-items:center;gap:11px;padding:13px 16px;border-bottom:1px solid #e7eaf1;background:#fff}
+.chat-head .m-ico{width:32px;height:32px;border-radius:9px;display:grid;place-items:center;font-weight:700;color:#fff;background:linear-gradient(135deg,#4d8cff,#6aa0ff);font-size:13px}
+.chat-head .t{font-weight:600;font-size:14.5px;color:#1c2230}
+.chat-head .s{font-size:12px;color:#8a93a6}
+.chat-head .sp{flex:1}
+.chat-head .x{border:none;background:none;color:#9aa3b5;font-size:22px;line-height:1;cursor:pointer;padding:2px 8px;border-radius:8px}
+.chat-head .x:hover{background:#f0f2f6;color:#ff6b6b}
+.chat-head .min{border:1px solid #e3e7ef;background:#fff;color:#5a6373;border-radius:8px;padding:5px 11px;font-size:12.5px;cursor:pointer}
+.chat-head .min:hover{background:#f0f2f6}
+.chat-msgs{flex:1;overflow:auto;padding:20px 20px 8px;display:flex;flex-direction:column;gap:15px;background:#fbfcfe}
+.bub{max-width:80%;padding:11px 15px;border-radius:15px;font-size:14px;line-height:1.6;white-space:pre-wrap;word-break:break-word;box-shadow:0 1px 2px rgba(20,30,50,.06)}
+.bub.u{align-self:flex-end;background:linear-gradient(135deg,#4d8cff,#5b95ff);color:#fff;border-bottom-right-radius:5px}
+.bub.a{align-self:flex-start;background:#fff;color:#1f2733;border:1px solid #e9edf3;border-bottom-left-radius:5px}
+.bub .role{font-size:11px;opacity:.55;margin-bottom:5px;font-weight:600}
+.chat-reason{font-size:12.5px;color:#7a8699;border-left:3px solid #ffe08a;background:#fffaf0;padding:7px 11px;margin-bottom:7px;border-radius:6px;white-space:pre-wrap;line-height:1.5}
+.chat-wait{align-self:flex-start;color:#9aa3b5;font-size:13px;padding:3px 2px;display:flex;align-items:center;gap:7px}
+.chat-wait .spin{width:13px;height:13px;border:2px solid #c7d0e0;border-top-color:#4d8cff;border-radius:50%;animation:sp .7s linear infinite;display:inline-block}
+@keyframes sp{to{transform:rotate(360deg)}}
+.chat-foot{display:flex;gap:10px;padding:12px 16px;border-top:1px solid #e7eaf1;align-items:flex-end;background:#fff}
+.chat-foot textarea{flex:1;resize:none;height:48px;max-height:160px;padding:12px 14px;border:1px solid #dfe4ee;border-radius:11px;font-size:14px;font-family:inherit;background:#fff;color:#1f2733;outline:none}
+.chat-foot textarea:focus{border-color:#7aa8ff}
+.chat-foot .send{height:48px;padding:0 22px;border-radius:11px;border:none;background:linear-gradient(135deg,#4d8cff,#5b95ff);color:#fff;font-weight:600;cursor:pointer;font-size:14px}
+.chat-foot .send:disabled{opacity:.55;cursor:default}
+.chat-foot .new{border:1px solid #dfe4ee;background:#fff;color:#5a6373;border-radius:11px;padding:0 15px;cursor:pointer;font-size:13px}
+.chat-foot .new:hover{background:#f3f5f9}
+.chat-cfg{display:flex;gap:8px;align-items:center;padding:0 16px 12px;background:#fff;flex-wrap:wrap}
+.chat-cfg label{font-size:12px;color:#7a8699;display:flex;align-items:center;gap:5px}
+.chat-cfg select,.chat-cfg input{border:1px solid #dfe4ee;border-radius:8px;padding:5px 8px;font-size:12.5px;font-family:inherit;color:#1f2733;background:#fff}
+
+/* ---------- 引擎日志查看浮层 ---------- */
+.log-overlay{position:fixed;inset:0;background:rgba(16,20,30,.5);display:none;z-index:96;align-items:center;justify-content:center}
+.log-overlay.show{display:flex;animation:ovIn .18s ease}
+.log-box{width:min(1100px,96vw);height:min(85vh,820px);background:#fbfcfe;border-radius:14px;box-shadow:0 26px 80px rgba(0,0,0,.45);display:flex;flex-direction:column;overflow:hidden;font-family:inherit}
+.log-head{display:flex;align-items:center;gap:11px;padding:12px 16px;border-bottom:1px solid #e7eaf1;background:#fff}
+.log-head .t{font-weight:600;font-size:14.5px;color:#1c2230}
+.log-head .x{border:none;background:none;color:#9aa3b5;font-size:22px;line-height:1;cursor:pointer;padding:2px 8px;border-radius:8px;margin-left:auto}
+.log-head .x:hover{background:#f0f2f6;color:#ff6b6b}
+.log-head .cp{border:1px solid #dfe4ee;background:#fff;color:#5a6373;border-radius:8px;padding:5px 11px;font-size:12.5px;cursor:pointer}
+.log-head .cp:hover{background:#f0f2f6}
+.log-meta{padding:10px 16px;font-size:12.5px;color:#5a6373;background:#f3f5f9;border-bottom:1px solid #e7eaf1;font-family:var(--mono)}
+.log-body{flex:1;overflow:auto;background:#0f111a;color:#d8dce5;font-family:var(--mono);font-size:12.5px;padding:14px 16px;line-height:1.55;white-space:pre-wrap;word-break:break-all}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand">
+    <div class="logo">FT</div>
+    <div>
+      <h1>FreeToken 工具箱</h1>
+      <div class="sub">HF 检查点 → FTW · 一键启动本地模型 · 实时日志与生成自检</div>
+    </div>
+  </div>
+  <div class="pills" id="pills">
+    <span class="pill"><span class="dot" id="d-ft"></span>引擎 <b id="p-ft">检测中…</b></span>
+    <span class="pill"><span class="dot" id="d-gpu"></span>显卡 <b id="p-gpu">—</b></span>
+    <span class="pill"><span class="dot" id="d-disk"></span>磁盘 <b id="p-disk">—</b></span>
+    <span class="pill"><span class="dot" id="d-srv"></span>服务 <b id="p-srv">未运行</b></span>
+  </div>
+  <button class="db t-quit" onclick="shutdownTool()" title="关闭工具并停止所有托管的服务">退出工具</button>
+</div>
+
+<div class="tabs">
+  <button class="tab active" data-tab="console">控制台</button>
+  <button class="tab" data-tab="convert">格式转换</button>
+  <button class="tab" data-tab="serve">对话测试</button>
+  <button class="tab" data-tab="library">模型库</button>
+  <button class="tab" data-tab="settings">设置</button>
+</div>
+
+<div class="wrap">
+<main id="main-panel" class="dark">
+
+<!-- ============================ 控制台 ============================ -->
+<section class="pane active" id="pane-console">
+<div class="dash">
+
+  <div class="dhead">
+    <div style="flex:1;min-width:220px">
+      <h2>控制台</h2>
+      <div class="dsub" id="c-sub">正在读取环境…</div>
+    </div>
+    <span class="live" id="c-live"><span class="pd"></span><b>实时 · 1.5s</b></span>
+    <button class="db sm" onclick="Console.hardRefresh()">立即刷新</button>
+  </div>
+
+  <!-- KPI -->
+  <div class="kpis">
+    <div class="kpi">
+      <i>累计节省</i>
+      <b class="g" id="k-save">$0.00</b>
+      <div class="sm">按对标参考托管 API 单价估算（$2.5/M 输入 · $10/M 输出）</div>
+    </div>
+    <div class="kpi">
+      <i>已处理 Token</i>
+      <b id="k-tokens">0</b>
+      <div class="sm" id="k-tokens-sub">0 输入 · 0 输出</div>
+    </div>
+    <div class="kpi">
+      <i>本次启动</i>
+      <b id="k-boot">—</b>
+      <div class="sm" id="k-boot-sub">尚未启动模型</div>
+    </div>
+  </div>
+
+  <!-- 引擎 -->
+  <div id="eng-list"></div>
+
+  <!-- 环境自检 -->
+  <div class="eng" style="margin-top:2px">
+    <div class="top">
+      <div class="ico" style="background:linear-gradient(135deg,#4b5563,#6b7280);box-shadow:none">ENV</div>
+      <div class="nm">
+        <div class="t">环境自检</div>
+        <div class="m" id="env-sub">正在检查引擎与运行时…</div>
+      </div>
+      <span class="st" id="env-badge">检查中</span>
+      <div class="acts">
+        <button class="db sm" onclick="Console.loadFt(true)">重新检查</button>
+        <button class="db sm" id="btn-ft-install" onclick="Console.installFt()" style="display:none">一键安装 FreeToken</button>
+      </div>
+    </div>
+    <div id="env-body"></div>
+  </div>
+
+  <!-- Cache 配置 -->
+  <div class="eng" style="margin-top:2px">
+    <div class="top">
+      <div class="nm">
+        <div class="t">Cache 配置</div>
+        <div class="m" id="cache-sub">选择模型后，这里汇总当前生效的上下文与 KV 压缩</div>
+      </div>
+      <span class="st" id="cache-badge">未同步</span>
+      <div class="acts">
+        <button class="db sm" onclick="Console.syncCache()">同步到引擎参数</button>
+      </div>
+    </div>
+    <div id="cache-body" class="cfg wide"></div>
+  </div>
+
+  <div class="hw" id="hw-line">正在读取硬件信息…</div>
+  <div class="rings" id="rings"></div>
+
+  <!-- 日志 -->
+  <div class="logs">
+    <div class="lh">
+      <div class="e-seg" id="log-eng"></div>
+      <div class="e-seg" id="log-level2">
+        <button class="on" data-lv="all" onclick="Console.setLevel('all')">全部</button>
+        <button data-lv="key" onclick="Console.setLevel('key')">关键</button>
+        <button data-lv="err" onclick="Console.setLevel('err')">仅错误</button>
+      </div>
+      <input class="find2" id="log-find2" placeholder="过滤关键词…" oninput="Console.onFind()">
+      <span style="flex:1"></span>
+      <label class="chipd" style="cursor:pointer">
+        <input type="checkbox" id="log-auto2" checked style="width:auto;margin:0 5px 0 0"> 自动滚动
+      </label>
+      <span class="chipd" id="log-count2">0 行</span>
+      <button class="db sm" onclick="Console.clearLog()">清空</button>
+      <button class="db sm" onclick="Console.copyLog()">复制</button>
+      <button class="db sm" onclick="Console.exportLog()">导出</button>
+    </div>
+    <div class="console2" id="console-dash"></div>
+  </div>
+
+  <div class="srcs">
+    引擎来源：
+    <a href="https://github.com/ggml-org/llama.cpp" target="_blank" rel="noopener">ggml-org/llama.cpp</a> ·
+    <a href="https://github.com/TheTom/llama-cpp-turboquant" target="_blank" rel="noopener">TheTom/llama-cpp-turboquant</a> ·
+    <a href="https://github.com/FlashML-org/FreeToken/tree/main" target="_blank" rel="noopener">FlashML-org/FreeToken</a>
+   　·　FTW 模型转换参考 <a href="https://github.com/FlashML-org/FreeToken/tree/main" target="_blank" rel="noopener">FreeToken 官方文档</a>
+  </div>
+
+</div>
+</section>
+
+<!-- ============================ 转换 ============================ -->
+<section class="pane" id="pane-convert">
+  <div id="offline-note" class="note warn hidden" style="margin-bottom:16px">
+    <span>⚠</span>
+    <div>
+      <b>未连接到本地服务，当前为「命令行模式」。</b>
+      页面仍可生成完整命令与 .bat 脚本（右侧「命令行预览」可一键复制/下载），但实时进度与日志不可用。<br>
+      想启用完整功能，请双击 <code>启动工具.bat</code> 后再从 <code>http://127.0.0.1:8420</code> 打开本页。
+    </div>
+  </div>
+
+  <div class="grid c2">
+    <!-- 左：表单 -->
+    <div class="col">
+      <div class="card">
+        <h3><span class="n">1</span>源模型（HF safetensors 目录）</h3>
+        <label class="f">
+          <span class="lb">模型目录 <em>— 需要包含 .safetensors 权重与 config.json</em></span>
+          <div class="pathrow">
+            <input type="text" id="in-model" placeholder="G:\AI\Qwen3.8-27B-NVFP4">
+            <button class="btn" onclick="Picker.open('in-model')">浏览</button>
+            <button class="btn" onclick="scanKnown()">扫描</button>
+          </div>
+        </label>
+        <div class="strip" id="src-info">
+          <div class="kv"><i>状态</i><b class="sm" style="color:var(--muted)">未选择</b></div>
+        </div>
+        <div id="scan-result" class="hidden" style="margin-top:12px">
+          <div class="divider"></div>
+          <div class="row" style="margin-bottom:8px">
+            <b style="font-size:12.5px">扫描到 <span id="scan-count">0</span> 个模型</b>
+            <span class="spacer"></span>
+            <button class="btn sm" onclick="document.getElementById('scan-result').classList.add('hidden')">收起</button>
+          </div>
+          <div id="scan-list" class="mcards"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3><span class="n">2</span>输出位置</h3>
+        <label class="f">
+          <span class="lb">输出目录 <em>— 留空自动生成同级 &lt;名称&gt;-FTW</em></span>
+          <div class="pathrow">
+            <input type="text" id="in-out" placeholder="G:\AI\Qwen3.8-27B-NVFP4-FTW">
+            <button class="btn" onclick="Picker.open('in-out')">浏览</button>
+            <button class="btn" onclick="suggestOut()">自动</button>
+          </div>
+        </label>
+        <div class="strip" id="out-info">
+          <div class="kv"><i>预计占用</i><b class="sm" style="color:var(--muted)">—</b></div>
+          <div class="kv"><i>磁盘可用</i><b class="sm" style="color:var(--muted)">—</b></div>
+          <div class="kv"><i>覆盖</i><b class="sm" style="color:var(--muted)">否</b></div>
+        </div>
+        <div class="hint" id="space-hint">选择源模型后可自动预判所需空间。</div>
+        <label class="row" style="margin-top:11px;gap:9px;cursor:pointer;align-items:flex-start">
+          <input type="checkbox" id="in-overwrite" style="width:auto;margin-top:3px">
+          <span style="font-size:12.5px;color:var(--text-2)">
+            允许覆盖：输出目录非空时<b>先整目录删除</b>再重新转换
+            <em style="display:block;font-style:normal;color:var(--muted);font-size:11.5px">
+              注意：这会永久删除该目录下的全部文件，请在开始前确认路径无误。
+            </em>
+          </span>
+        </label>
+      </div>
+
+      <div class="card">
+        <h3><span class="n">3</span>转换参数</h3>
+        <div class="f3">
+          <label class="f"><span class="lb">权重精度 dtype</span>
+            <select id="in-dtype">
+              <option value="bfloat16" selected>bfloat16（推荐）</option>
+              <option value="float16">float16</option>
+              <option value="float32">float32</option>
+            </select>
+          </label>
+          <label class="f"><span class="lb">分片大小 shard-gib</span>
+            <input type="number" id="in-shard" value="8" min="1" max="32" step="1">
+          </label>
+          <label class="f"><span class="lb">MoE 后端 moe-backend</span>
+            <select id="in-moe">
+              <option value="offload" selected>offload（专家→bank，省显存）</option>
+              <option value="triton">triton（专家常驻显存）</option>
+            </select>
+          </label>
+        </div>
+        <div class="f2">
+          <label class="f"><span class="lb">运算 GPU <em>— repack 时使用</em></span>
+            <select id="in-gpu"><option value="">自动（第一块可见 GPU）</option></select>
+          </label>
+          <label class="f"><span class="lb">附加参数 <em>— 空格分隔，直接追加</em></span>
+            <input type="text" id="in-extra" placeholder="（一般留空）">
+          </label>
+        </div>
+        <div class="divider"></div>
+        <div class="row">
+          <button class="btn primary lg" id="btn-convert" onclick="startConvert()">开始转换</button>
+          <button class="btn danger" id="btn-cancel" onclick="cancelTask()" disabled>取消</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 右：进度 + 日志 -->
+    <div class="col">
+      <div class="card flat">
+        <h3>转换进度</h3>
+        <div class="proghead">
+          <b id="prog-pct">—</b>
+          <span id="prog-state">空闲</span>
+        </div>
+        <div class="bar" id="prog-bar"><i></i></div>
+        <div class="strip">
+          <div class="kv"><i>已用时</i><b id="prog-elapsed">—</b></div>
+          <div class="kv"><i>预计剩余</i><b id="prog-eta">—</b></div>
+          <div class="kv"><i>速率</i><b class="sm" id="prog-speed">—</b></div>
+          <div class="kv"><i>数据量</i><b class="sm" id="prog-detail">—</b></div>
+        </div>
+      </div>
+
+      <div class="card flat" style="display:flex;flex-direction:column;flex:1;min-height:0">
+        <div class="row" style="margin-bottom:10px">
+          <h3 style="margin:0">运行日志</h3>
+          <span class="spacer"></span>
+          <label class="row" style="gap:5px;cursor:pointer;font-size:12px;color:var(--muted)">
+            <input type="checkbox" id="log-autoscroll" checked style="width:auto"> 自动滚动
+          </label>
+          <button class="btn sm" onclick="clearLog()">清空</button>
+          <button class="btn sm" onclick="copyLog()">复制全部</button>
+        </div>
+        <div class="console tall" id="console-convert"></div>
+      </div>
+
+      <div class="card flat">
+        <h3>命令行预览</h3>
+        <div class="cmdbox" id="cmd-preview">—</div>
+        <div class="row tight" style="margin-top:10px">
+          <button class="btn sm" onclick="copyCmd()">复制命令</button>
+          <button class="btn sm" onclick="downloadBat()">下载 .bat</button>
+          <span class="hint" style="margin:0">可用记事本核对后再手动执行，等价于本页操作。</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ 服务 ============================ -->
+<section class="pane" id="pane-serve">
+
+  <!-- ============ 运行状态条 ============ -->
+  <div class="svcbar idle" id="svcbar">
+    <div class="lead">
+      <span class="ring"></span>
+      <div>
+        <div class="t1" id="svc-title">模型未启动</div>
+        <div class="t2" id="svc-sub">引擎由本工具直接托管，不需要开 FreeToken Desktop</div>
+      </div>
+    </div>
+    <div class="facts">
+      <div class="f"><i>端口</i><b id="svc-port">—</b></div>
+      <div class="f"><i>进程 PID</i><b id="svc-pid">—</b></div>
+      <div class="f"><i>运行时长</i><b id="svc-uptime">—</b></div>
+      <div class="f"><i>GPU 空闲</i><b id="svc-gpu">—</b></div>
+      <div class="f"><i>API 地址</i><b id="svc-api">—</b></div>
+    </div>
+    <div class="acts">
+      <button class="btn sm" id="btn-openapi" onclick="copyApi()" disabled>复制 API</button>
+      <button class="btn sm" id="btn-restart" onclick="restartServe()" disabled>重启</button>
+      <button class="btn sm danger" id="btn-stop" onclick="stopServe()" disabled>停止</button>
+    </div>
+  </div>
+
+  <div class="grid c2w" style="margin-top:18px;align-items:start">
+    <!-- ================= 左列 ================= -->
+    <div class="col">
+
+      <!-- ---- 1. 选择模型 ---- -->
+      <div class="card">
+        <h3><span class="n">1</span>选择模型</h3>
+        <label class="f">
+          <span class="lb">模型目录 <em>— FTW 目录加载最快；原始 HF / GGUF 目录也能直接跑</em></span>
+          <div class="pathrow">
+            <input type="text" id="s-model" placeholder="G:\AI\Qwen3.8-27B-NVFP4-FTW">
+            <button class="btn" onclick="Picker.open('s-model')">浏览</button>
+            <button class="btn" onclick="useConvertOut()">用转换结果</button>
+            <button class="btn" onclick="pickFromLibrary()">模型库</button>
+          </div>
+        </label>
+        <div class="strip" id="s-model-info">
+          <div class="kv"><i>格式</i><b class="sm" style="color:var(--muted)">—</b></div>
+          <div class="kv"><i>大小</i><b class="sm" style="color:var(--muted)">—</b></div>
+          <div class="kv"><i>架构</i><b class="sm" style="color:var(--muted)">—</b></div>
+        </div>
+      </div>
+
+      <!-- ---- 2. 启动 ---- -->
+      <div class="card" style="border-color:#cddcff;background:linear-gradient(135deg,#f5f8ff,#faf7ff)">
+        <h3><span class="n">2</span>启动模型</h3>
+        <div class="row">
+          <button class="btn primary" id="btn-quick" onclick="quickLaunch()">一键启动</button>
+          <span class="spacer"></span>
+          <span class="badge" id="tune-badge">未调优</span>
+        </div>
+        <div class="hint">
+          显存调优（memory-ratio / 并发 / 缓存策略 / NVFP4 后端）已合并到「控制台」里对应引擎卡片的
+          <b>配置 → 自动调优</b>，这里只负责启动与生成测试。
+        </div>
+        <div id="tune-result"></div>
+
+        <!-- 高级参数 -->
+        <div id="serve-adv" class="hidden">
+          <div class="divider"></div>
+          <div class="f3">
+            <label class="f"><span class="lb">端口 port</span><input type="number" id="s-port" value="8421" min="1024" max="65535"></label>
+            <label class="f"><span class="lb">并发 max-running-requests</span><input type="number" id="s-conc" value="1" min="1" max="64"></label>
+            <label class="f"><span class="lb">显存比例 memory-ratio</span><input type="number" id="s-ratio" value="" min="0.1" max="0.99" step="0.01" placeholder="自动"></label>
+          </div>
+          <div class="f3" style="margin-top:12px">
+            <label class="f"><span class="lb">prefill 上限</span><input type="number" id="s-prefill" value="" min="128" step="128" placeholder="自动"></label>
+            <label class="f"><span class="lb">缓存策略 cache-type</span>
+              <select id="s-cache"><option value="">自动</option><option value="radix">radix（跨请求复用）</option><option value="naive">naive（更省状态池）</option></select>
+            </label>
+            <label class="f"><span class="lb">NVFP4 后端</span>
+              <select id="s-nvfp4"><option value="">自动（triton）</option><option value="triton">triton</option><option value="marlin">marlin</option><option value="flashinfer">flashinfer</option></select>
+            </label>
+          </div>
+          <div class="f2" style="margin-top:12px">
+            <label class="f"><span class="lb">指定 GPU</span><select id="s-gpu"><option value="">自动</option></select></label>
+            <label class="f"><span class="lb">附加参数</span><input type="text" id="s-extra" placeholder="（一般留空）"></label>
+          </div>
+          <div class="hint">留空的项由「自动调优」填。同一端口已有服务时会直接拦下来，不会中途报一堆底层错误。</div>
+        </div>
+
+        <div class="divider"></div>
+        <div class="row">
+          <button class="btn primary" id="btn-serve" onclick="startServe()">启动服务</button>
+          <span class="spacer"></span>
+          <span class="badge" id="s-health">未启动</span>
+        </div>
+        <div class="hint">
+          首次加载要先把权重读进显存、再捕获 CUDA graph，一般 <b>1～5 分钟</b>。
+          这期间引擎的 <code>/health</code> 一直返回 <code>loading</code>，就绪后自动转绿。
+        </div>
+      </div>
+
+      <!-- ---- 3. 运行日志 ---- -->
+      <div class="card flat">
+        <div class="row" style="margin-bottom:10px">
+          <h3 style="margin:0">运行日志</h3>
+          <span class="stage" id="s-stage">待启动</span>
+          <span class="spacer"></span>
+          <span class="hint" style="margin:0" id="log-count"></span>
+        </div>
+        <div class="loadbar" id="svc-loadbar" style="display:none"><i></i></div>
+        <div class="logtools">
+          <div class="seg" id="log-level">
+            <button class="on" data-lv="all" onclick="setLogLevel('all')">全部</button>
+            <button data-lv="key" onclick="setLogLevel('key')">关键</button>
+            <button data-lv="err" onclick="setLogLevel('err')">仅错误</button>
+          </div>
+          <input class="find" id="log-find" placeholder="过滤关键词…" oninput="onLogFind()">
+          <span class="spacer"></span>
+          <label class="chip" style="display:inline-flex;align-items:center;gap:6px">
+            <input type="checkbox" id="svc-autoscroll" checked style="margin:0"> 自动滚动
+          </label>
+          <button class="btn sm" onclick="clearServeLog()">清空</button>
+          <button class="btn sm" onclick="copyServeLog()">复制</button>
+          <button class="btn sm" onclick="downloadServeLog()">导出</button>
+        </div>
+        <div class="console big" id="console-serve"></div>
+      </div>
+    </div>
+
+    <!-- ================= 右列 ================= -->
+    <div class="col">
+      <div class="card">
+        <div class="row" style="margin-bottom:12px">
+          <h3 style="margin:0">运行指标</h3>
+          <span class="spacer"></span>
+          <span class="badge" id="m-badge">无数据</span>
+        </div>
+        <div class="strip" style="margin-top:0">
+          <div class="kv"><i>decode 速度</i><b id="m-decode">—</b></div>
+          <div class="kv"><i>prefill 速度</i><b id="m-prefill">—</b></div>
+          <div class="kv"><i>活跃请求</i><b id="m-active">—</b></div>
+          <div class="kv"><i>已完成</i><b id="m-done">—</b></div>
+          <div class="kv"><i>首字延迟 TTFT</i><b id="m-ttft">—</b></div>
+          <div class="kv"><i>上下文上限</i><b id="m-ctx">—</b></div>
+        </div>
+        <div class="hint" id="m-model">服务就绪后这里会显示引擎的实时指标。</div>
+        <div id="m-sampling" class="hidden">
+          <div class="note info" style="margin-top:10px">
+            <span>✎</span>
+            <div>
+              模型自带的推荐采样：<b id="m-samp-text"></b>
+              <div style="margin-top:8px">
+                <button class="btn sm" onclick="applySampling()">套用到下面的生成测试</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card flat" style="display:flex;flex-direction:column">
+        <div class="row" style="margin-bottom:10px">
+          <h3 style="margin:0">生成测试</h3>
+          <label class="f" style="margin:0"><select id="c-port" style="width:auto;font-size:12px" onchange="refreshChatHint()"><option value="8421">:8421</option></select></label>
+          <span class="spacer"></span>
+          <span class="badge" id="chat-stat">待测试</span>
+        </div>
+        <div class="chatlog" id="chatlog">
+          <div class="empty">服务就绪后在这里提问，验证模型是否正常出词。<br>
+            右上角端口默认跟随刚启动的服务。</div>
+        </div>
+        <div class="divider"></div>
+        <div class="f3" style="margin-bottom:10px">
+          <label class="f" style="margin:0"><span class="lb">max_tokens</span><input type="number" id="c-max" value="512" min="1"></label>
+          <label class="f" style="margin:0"><span class="lb">temperature</span><input type="number" id="c-temp" value="1" min="0" max="2" step="0.1"></label>
+          <label class="f" style="margin:0"><span class="lb">top_p</span><input type="number" id="c-topp" value="0.95" min="0" max="1" step="0.01"></label>
+        </div>
+        <div class="f2" style="margin-bottom:10px">
+          <label class="f" style="margin:0"><span class="lb">top_k</span><input type="number" id="c-topk" value="20" min="0"></label>
+          <label class="f" style="margin:0"><span class="lb">预设</span>
+            <select id="c-preset" onchange="applyPreset()">
+              <option value="">自定义</option>
+              <option value="quick">快速自检（1+1，20 token）</option>
+              <option value="zh">中文自我介绍</option>
+              <option value="math">数学推理题</option>
+              <option value="long">长文生成</option>
+            </select>
+          </label>
+        </div>
+        <textarea class="chatin" id="c-input" rows="3" placeholder="输入问题，Ctrl+Enter 发送">用一句话介绍你自己。</textarea>
+        <div class="row" style="margin-top:10px">
+          <button class="btn primary" id="btn-chat" onclick="sendChat()">发送</button>
+          <button class="btn" onclick="document.getElementById('chatlog').innerHTML=''">清空对话</button>
+          <span class="spacer"></span>
+          <span class="hint" style="margin:0" id="chat-meta"></span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+<!-- ============================ 模型库 ============================ -->
+<section class="pane" id="pane-library">
+  <div class="card">
+    <h3>扫描本地模型</h3>
+    <div class="row">
+      <input type="text" id="lib-root" value="G:\AI" style="max-width:420px;font-family:var(--mono);font-size:12.5px">
+      <button class="btn" onclick="Picker.open('lib-root')">浏览</button>
+      <label class="f" style="margin:0"><select id="lib-mode" style="width:auto">
+        <option value="hf" selected>HF 目录（含 safetensors / FTW）</option>
+        <option value="gguf">GGUF 文件（独立 .gguf）</option>
+      </select></label>
+      <label class="f" style="margin:0"><select id="lib-depth" style="width:auto"><option value="1">深度 1</option><option value="2" selected>深度 2</option><option value="3">深度 3</option></select></label>
+      <button class="btn primary" onclick="scanLibrary()">开始扫描</button>
+      <span class="spacer"></span>
+      <span class="hint" style="margin:0" id="lib-stat">尚未扫描</span>
+    </div>
+  </div>
+  <div id="lib-results" style="margin-top:18px">
+    <div class="empty">扫描后这里会列出所有可用的 HF / GGUF / FTW 模型，并可直接发起转换或启动服务。</div>
+  </div>
+</section>
+
+<!-- ============================ 设置 ============================ -->
+<section class="pane" id="pane-settings">
+  <div class="grid c2w">
+    <div class="card">
+      <h3>引擎路径</h3>
+      <label class="f">
+        <span class="lb">ft.exe <em>— 留空则自动探测</em></span>
+        <div class="pathrow">
+          <input type="text" id="set-ft" placeholder="自动探测">
+          <button class="btn" onclick="Picker.open('set-ft', true)">定位</button>
+        </div>
+      </label>
+      <div class="hint" id="set-ft-cands">探测结果会显示在这里。</div>
+      <div class="divider"></div>
+      <h3>默认值</h3>
+      <div class="f2">
+        <label class="f"><span class="lb">默认输出后缀</span><input type="text" id="set-suffix" value="-FTW"></label>
+        <label class="f"><span class="lb">默认扫描根目录</span><input type="text" id="set-root" value="G:\AI"></label>
+      </div>
+      <div class="row" style="margin-top:6px">
+        <button class="btn primary" onclick="saveSettings()">保存设置</button>
+        <button class="btn" onclick="resetSettings()">恢复默认</button>
+      </div>
+    </div>
+    <div class="card">
+      <h3>运行环境</h3>
+      <div class="strip" id="env-strip">
+        <div class="kv"><i>平台</i><b class="sm">—</b></div>
+        <div class="kv"><i>Python</i><b class="sm">—</b></div>
+        <div class="kv"><i>工具目录</i><b class="sm">—</b></div>
+      </div>
+      <div class="divider"></div>
+      <h3>磁盘</h3>
+      <div class="strip" id="env-disks"></div>
+      <div class="divider"></div>
+      <h3>显卡</h3>
+      <div class="strip" id="env-gpus"></div>
+      <div class="hint" style="margin-top:14px">
+        本工具只通过 Python 标准库与本机进程交互，所有数据都留在本机，不会上传任何内容。
+      </div>
+    </div>
+  </div>
+</section>
+
+</main>
+</div>
+
+<!-- 目录选择器 -->
+<div class="mask" id="picker-mask">
+  <div class="modal">
+    <header>
+      <h3 id="picker-title">选择目录</h3>
+      <button class="btn sm" onclick="Picker.close()">关闭</button>
+    </header>
+    <div class="crumb" id="picker-path">…</div>
+    <div style="padding:9px 20px;border-bottom:1px solid var(--line);display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <button class="btn sm" onclick="Picker.up()">↑ 上一级</button>
+      <div class="shortcuts" id="picker-shortcuts"></div>
+      <span class="spacer"></span>
+      <label class="row" id="picker-only-wrap" style="gap:5px;cursor:pointer;font-size:12px;color:var(--muted)">
+        <input type="checkbox" id="picker-only-models" style="width:auto" onchange="Picker.reload()"> 只看模型目录
+      </label>
+    </div>
+    <div class="list" id="picker-list"></div>
+    <footer>
+      <span class="hint" style="margin:0;flex:1">双击进入子目录 · 选中后点右侧按钮确认</span>
+      <button class="btn primary" onclick="Picker.choose()">选择此目录</button>
+    </footer>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+/* ===================================================================== *
+ *  状态
+ * ===================================================================== */
+const S = {
+  online: true,
+  env: null,
+  ft: "",
+  convertTask: null,
+  convertOffset: 0,
+  serveTask: null,
+  serveOffset: 0,
+  pollTimer: null,
+  lastCmd: "",
+  settings: { ft: "", suffix: "-FTW", root: "G:\\AI" },
+  logLines: [],
+  serveLines: [],          // 服务日志的原始文本（过滤 / 复制 / 导出都基于它）
+  logLevel: "all",         // all | key | err
+  logFind: "",             // 关键词过滤（小写）
+  svcPort: "",
+  svcElapsed: 0,
+  sampling: null,          // 引擎给出的推荐采样参数
+  pickerFor: null,
+  pickerFiles: false,
+  pickerExts: null,
+  pickerCb: null,
+  pickerLegacyExe: false,
+  pickerPath: "",
+  pickerParent: null,
+  progressLineIdx: -1,
+};
+
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
+const fmtGB = b => (b / 1073741824).toFixed(1) + " GB";
+const fmtDur = s => {
+  s = Math.max(0, Math.round(s || 0));
+  if (s < 60) return s + " 秒";
+  const m = Math.floor(s / 60), h = Math.floor(m / 60);
+  if (h) return h + " 时 " + (m % 60) + " 分";
+  return m + " 分 " + (s % 60) + " 秒";
+};
+
+function toast(msg, kind = "", ms = 4200) {
+  const el = document.createElement("div");
+  el.className = "toast " + kind;
+  el.textContent = msg;
+  $("toast").appendChild(el);
+  setTimeout(() => el.remove(), ms);
+}
+
+async function api(path, opts) {
+  const res = await fetch(path, Object.assign({ headers: { "Content-Type": "application/json" } }, opts || {}));
+  const txt = await res.text();
+  let data;
+  try { data = JSON.parse(txt); } catch { data = { error: txt.slice(0, 300) }; }
+  if (!res.ok) throw new Error(data.error || ("HTTP " + res.status));
+  return data;
+}
+
+/* ===================================================================== *
+ *  标签页
+ * ===================================================================== */
+document.querySelectorAll(".tab").forEach(t => t.onclick = () => {
+  document.querySelectorAll(".tab").forEach(x => x.classList.toggle("active", x === t));
+  document.querySelectorAll(".pane").forEach(p =>
+    p.classList.toggle("active", p.id === "pane-" + t.dataset.tab));
+  // 控制台是深色仪表盘，其余页面是浅色；整块主面板跟着切
+  const mp = $("main-panel");
+  if (mp) mp.classList.toggle("dark", t.dataset.tab === "console");
+  if (t.dataset.tab === "settings") renderEnv();
+  if (t.dataset.tab === "console" && typeof Console !== "undefined") Console.onShow();
+  if (t.dataset.tab === "library" && $("lib-stat").textContent === "尚未扫描") { /* 等用户点扫描 */ }
+  S.tab = t.dataset.tab;
+  try { history.replaceState(null, "", "#" + t.dataset.tab); } catch {}
+});
+function activateTab(name) {
+  const t = document.querySelector(`.tab[data-tab="${name}"]`);
+  if (t) t.click();
+}
+
+/* ===================================================================== *
+ *  设置读写
+ * ===================================================================== */
+function loadSettings() {
+  try {
+    const raw = localStorage.getItem("ftw-tool");
+    if (raw) Object.assign(S.settings, JSON.parse(raw));
+  } catch {}
+  $("set-ft").value = S.settings.ft || "";
+  $("set-suffix").value = S.settings.suffix || "-FTW";
+  $("set-root").value = S.settings.root || "G:\\AI";
+  $("lib-root").value = S.settings.root || "G:\\AI";
+}
+function saveSettings() {
+  S.settings = {
+    ft: $("set-ft").value.trim(),
+    suffix: $("set-suffix").value.trim() || "-FTW",
+    root: $("set-root").value.trim() || "G:\\AI",
+  };
+  localStorage.setItem("ftw-tool", JSON.stringify(S.settings));
+  S.ft = S.settings.ft || (S.env && S.env.ft.active) || "";
+  $("lib-root").value = S.settings.root;
+  toast("设置已保存", "ok");
+  renderEnv();
+}
+function resetSettings() {
+  localStorage.removeItem("ftw-tool");
+  S.settings = { ft: "", suffix: "-FTW", root: "G:\\AI" };
+  loadSettings(); renderEnv(); toast("已恢复默认设置");
+}
+
+/* ===================================================================== *
+ *  初始化 / 环境
+ * ===================================================================== */
+async function init() {
+  loadSettings();
+  try {
+    const env = await api("/api/env");
+    S.env = env; S.online = true;
+    S.ft = S.settings.ft || env.ft.active || "";
+    $("d-ft").className = "dot " + (env.ft.ok || S.settings.ft ? "ok" : "err");
+    $("p-ft").textContent = S.ft ? S.ft.split("\\").pop() : "未找到";
+    $("set-ft-cands").textContent = env.ft.paths.length
+      ? "自动探测到：" + env.ft.paths.join("   |   ")
+      : "未自动探测到 ft.exe，请手动指定。";
+    fillGpus(env.gpus);
+    const g = env.gpus[0];
+    $("d-gpu").className = "dot " + (g ? "ok" : "warn");
+    $("p-gpu").textContent = g
+      ? g.name.replace("NVIDIA GeForce ", "").replace("NVIDIA ", "") +
+        (g.freeMiB ? " · 空闲 " + (g.freeMiB / 1024).toFixed(1) + "G" : "")
+      : "未检测到";
+    const d = (env.drives || []).find(x => x.drive === "G") || (env.drives || [])[0];
+    $("d-disk").className = "dot " + (d ? (d.freeGB > 60 ? "ok" : "warn") : "err");
+    $("p-disk").textContent = d ? d.drive + ": 剩余 " + d.freeGB + "G" : "—";
+    $("offline-note").classList.add("hidden");
+    renderEnv();
+  } catch (e) {
+    S.online = false;
+    $("offline-note").classList.remove("hidden");
+    $("d-ft").className = "dot warn"; $("p-ft").textContent = "命令行模式";
+    $("d-gpu").className = "dot"; $("p-gpu").textContent = "—";
+    $("d-disk").className = "dot"; $("p-disk").textContent = "—";
+    renderEnv();
+  }
+  refreshCmd();
+  const h = (location.hash || "").replace("#", "");
+  if (["console", "convert", "serve", "library", "settings"].includes(h)) activateTab(h);
+  await reattach();
+  if (typeof Console !== "undefined") Console.init();
+}
+
+/** 页面刷新后把还在跑的任务接回来 —— 服务是长驻进程，不该因为刷新页面就"看不见"了。 */
+async function reattach() {
+  if (!S.online) return;
+  let tasks = [];
+  try { tasks = (await api("/api/tasks")).tasks || []; } catch { return; }
+  const conv = tasks.find(t => t.kind === "convert" && t.status === "running");
+  const srv = tasks.find(t => t.kind === "serve" && t.status === "running");
+  if (conv) {
+    S.convertTask = conv.id; S.convertOffset = 0;
+    $("console-convert").textContent = "";
+    logSys(`[已接回] 检测到仍在运行的转换任务 ${conv.id}，日志继续输出`, "l-ok");
+    document.querySelector('.tab[data-tab="convert"]').click();
+    startPolling();
+  }
+  if (srv) {
+    S.serveTask = srv.id; S.serveOffset = 0; S.svcPort = (srv.meta || {}).port || "";
+    clearServeLog();
+    logServe(`[已接回] 检测到仍在运行的模型服务（任务 ${srv.id}，端口 ${S.svcPort}）`);
+    $("btn-stop").disabled = false; $("btn-restart").disabled = false; $("btn-openapi").disabled = false;
+    $("btn-serve").disabled = true; $("btn-quick").disabled = true;
+    if (S.svcPort) { $("s-port").value = S.svcPort; addChatPort(S.svcPort); }
+    const mp = (srv.meta || {}).modelPath;
+    if (mp) { $("s-model").value = mp; inspectServeModel(); }
+    $("d-srv").className = "dot warn pulse"; $("p-srv").textContent = "服务 运行中 :" + S.svcPort;
+    startPolling(); startWatch(S.svcPort);
+  }
+  if (!conv && !srv) {
+    // 没有本工具托管的任务，但可能有别处起的服务占着端口（桌面端 / 命令行 / 工具重启过）
+    try {
+      const d = await api("/api/serve/discover");
+      const list = d.services || [];
+      list.forEach(s => addChatPort(s.port));
+      if (list.length) {
+        const s = list[0];
+        S.svcPort = s.port;
+        if (!$("s-port").value) $("s-port").value = s.port;
+        addChatPort(s.port);
+        $("btn-openapi").disabled = false;
+        logServe(`[发现] 端口 ${s.port} 上已有一个模型服务` +
+                 `（${s.model || "未知模型"}，状态 ${s.state}）——已接入，可直接在右侧测试`);
+        logServe("注意：它不由本工具启动，所以「停止 / 重启」不可用。");
+        startWatch(s.port);
+      } else {
+        refreshGpu();
+      }
+    } catch { refreshGpu(); }
+  }
+}
+
+function fillGpus(gpus) {
+  const opts = '<option value="">自动（第一块可见 GPU）</option>' +
+    (gpus || []).map(g => `<option value="${g.index}">#${g.index} ${esc(g.name)}` +
+      (g.freeMiB ? `（空闲 ${(g.freeMiB / 1024).toFixed(1)}G）` : "") + "</option>").join("");
+  const keep = $("in-gpu").value;
+  $("in-gpu").innerHTML = opts; $("in-gpu").value = keep;
+  const keep2 = $("s-gpu").value;
+  $("s-gpu").innerHTML = '<option value="">自动</option>' +
+    (gpus || []).map(g => `<option value="${g.index}">#${g.index} ${esc(g.name)}</option>`).join("");
+  $("s-gpu").value = keep2;
+  $("picker-shortcuts").dataset.gpus = "1";
+}
+
+function renderEnv() {
+  const env = S.env;
+  if (!env) {
+    $("env-strip").innerHTML = '<div class="kv"><i>状态</i><b class="sm">未连接后端服务</b></div>';
+    return;
+  }
+  const pyBits = env.pythonBits || 0;
+  const pyWarn = pyBits === 32;
+  $("env-strip").innerHTML =
+    `<div class="kv"><i>平台</i><b class="sm">${esc(env.platform)}</b></div>
+     <div class="kv"><i>Python</i><b class="sm" style="${pyWarn ? "color:var(--warn)" : ""}">${
+       esc(env.python)}${pyBits ? ` · ${pyBits} 位` : ""}${pyWarn ? " ⚠" : ""}</b></div>
+     <div class="kv"><i>nvidia-smi</i><b class="sm">${esc(env.smiPath || "未找到")}</b></div>
+     <div class="kv"><i>工具目录</i><b class="sm">${esc(env.cwd)}</b></div>
+     <div class="kv"><i>ft 子命令</i><b class="sm">checkpoint · serve · shell · ctl</b></div>` +
+    (pyWarn
+      ? `<div class="kv" style="grid-column:1/-1"><i>⚠ 位数</i><b class="sm"
+           style="color:var(--warn);font-weight:500;white-space:normal">正在用 32 位 Python 运行：
+           32 位进程访问 C:\\Windows\\System32 时会被 Windows 重定向到 SysWOW64，而那里没有
+           nvidia-smi.exe / nvml.dll —— 这就是「显卡明明在却读不到」的根因。
+           后端已自动改用 Sysnative 通道兜住，但建议改用 64 位 Python（启动工具.bat 已优先 64 位）。</b></div>`
+      : "");
+  $("env-disks").innerHTML = (env.drives || []).map(d =>
+    `<div class="kv"><i>${d.drive}:</i><b class="sm ${d.freeGB > 60 ? "" : ""}" 
+      style="color:${d.freeGB > 60 ? "var(--ok)" : "var(--warn)"}">剩余 ${d.freeGB} / ${d.totalGB} GB</b></div>`).join("")
+    || '<div class="kv"><i>磁盘</i><b class="sm">无</b></div>';
+  $("env-gpus").innerHTML = (env.gpus || []).map(g =>
+    `<div class="kv"><i>#${esc(g.index)} ${esc(g.name)}</i><b class="sm">${
+      g.totalMiB ? `显存 ${(g.totalMiB / 1024).toFixed(0)}G · 空闲 ${(g.freeMiB / 1024).toFixed(1)}G · CC ${esc(g.computeCap || "-")}`
+      : esc(g.uuid || "")}</b></div>`).join("")
+    || `<div class="kv"><i>显卡</i><b class="sm" style="color:var(--err)">未检测到显卡${
+         pyWarn ? "：32 位解释器 + Sysnative 通道都没拿到数据" : "：nvidia-smi / NVML 都不可用，请检查驱动"}</b></div>`;
+}
+
+/* ===================================================================== *
+ *  源模型信息
+ * ===================================================================== */
+let srcDebounce = null;
+$("in-model").addEventListener("input", () => {
+  clearTimeout(srcDebounce);
+  srcDebounce = setTimeout(() => inspectSource(), 420);
+});
+$("in-out").addEventListener("input", refreshCmdSame);
+
+async function inspectSource() {
+  const p = $("in-model").value.trim();
+  $("src-info").innerHTML = '<div class="kv"><i>状态</i><b class="sm" style="color:var(--muted)">读取中…</b></div>';
+  if (!p) { $("src-info").innerHTML = '<div class="kv"><i>状态</i><b class="sm" style="color:var(--muted)">未选择</b></div>'; return; }
+  if (!S.online) { $("src-info").innerHTML = '<div class="kv"><i>状态</i><b class="sm" style="color:var(--warn)">命令行模式无法读取</b></div>'; return; }
+  try {
+    const d = await api("/api/fs/inspect?path=" + encodeURIComponent(p));
+    const quant = d.ftw ? "FTW" : (d.safetensors ? "safetensors" : (d.gguf ? "GGUF" : "未知"));
+    $("src-info").innerHTML =
+      `<div class="kv"><i>格式</i><b>${quant}</b></div>
+       <div class="kv"><i>权重大小</i><b>${fmtGB(d.bytes)}</b></div>
+       <div class="kv"><i>分片数</i><b>${d.safetensors + d.gguf + d.other}</b></div>
+       <div class="kv"><i>架构</i><b class="sm">${esc(d.arch || "—")}</b></div>
+       <div class="kv"><i>层数</i><b>${d.layers || "—"}</b></div>`;
+    if (!d.safetensors && !d.gguf) {
+      $("src-info").innerHTML += '<div class="kv" style="grid-column:1/-1"><i>提示</i><b class="sm" style="color:var(--warn)">该目录没有 .safetensors / .gguf，无法转换</b></div>';
+    }
+    if (!/FTW$/i.test($("in-out").value.trim())) suggestOut(true);
+    estimateSpace(d.bytes);
+  } catch (e) {
+    $("src-info").innerHTML = `<div class="kv" style="grid-column:1/-1"><i>错误</i><b class="sm" style="color:var(--err)">${esc(e.message)}</b></div>`;
+  }
+}
+
+function estimateSpace(srcBytes) {
+  const need = srcBytes ? Math.round(srcBytes * 0.92) + 524288000 : 0;
+  const out = $("in-out").value.trim();
+  const drive = (out.match(/^([A-Za-z]:)/) || (S.settings.root.match(/^([A-Za-z]:)/) || []))[1];
+  const d = (S.env && S.env.drives || []).find(x => x.drive.toUpperCase() === (drive || "G").toUpperCase());
+  const free = d ? d.freeGB * 1073741824 : null;
+  const ok = free === null || need <= free;
+  $("out-info").innerHTML =
+    `<div class="kv"><i>预计占用</i><b class="sm" style="color:${ok ? "" : "var(--err)"}">${need ? fmtGB(need) : "—"}</b></div>
+     <div class="kv"><i>磁盘可用</i><b class="sm">${free !== null ? (free / 1073741824).toFixed(1) + " GB" : "—"}</b></div>
+     <div class="kv"><i>覆盖</i><b class="sm">${$("in-overwrite").checked ? "是" : "否"}</b></div>`;
+  $("space-hint").innerHTML = !need ? "选择源模型后可自动预判所需空间。"
+    : ok ? `空间充足（${d ? d.drive + ": " : ""}剩余 ${(free / 1073741824).toFixed(1)} GB，预计需要 ${fmtGB(need)}）。`
+         : `<b style="color:var(--err)">空间可能不足</b>：预计需要 ${fmtGB(need)}，剩余仅 ${(free / 1073741824).toFixed(1)} GB。`;
+}
+$("in-overwrite").onchange = () => refreshOutInfo();
+
+function refreshOutInfo() {
+  const txt = $("src-info").innerText;
+  const m = txt.match(/权重大小\s*([\d.]+)/);
+  estimateSpace(m ? parseFloat(m[1]) * 1073741824 : 0);
+}
+
+function suggestOut(silent) {
+  const p = $("in-model").value.trim().replace(/[\\\/]+$/, "");
+  if (!p) { if (!silent) toast("请先填写源模型目录", "warn"); return; }
+  const parts = p.split(/[\\\/]/);
+  const name = parts.pop();
+  const parent = parts.join("\\") || p;
+  const out = parent + "\\" + name + S.settings.suffix;
+  $("in-out").value = out;
+  refreshCmd();
+  estimateSpace(0);
+  if (!silent) toast("已生成输出路径");
+}
+$("in-out").addEventListener("input", () => { refreshCmd(); refreshOutInfo(); });
+
+/* ===================================================================== *
+ *  扫描已知模型
+ * ===================================================================== */
+async function scanKnown() {
+  if (!S.online) return toast("命令行模式无法扫描目录", "warn");
+  const root = (S.env && S.env.drives || []).length ? "G:\\AI" : "G:\\AI";
+  return scanInto(root, 2, true);
+}
+async function scanInto(root, depth, inline) {
+  const box = inline ? $("scan-result") : null;
+  if (inline) { box.classList.remove("hidden"); $("scan-list").innerHTML = '<div class="empty"><span class="spin"></span> 扫描中…</div>'; }
+  try {
+    const d = await api(`/api/fs/scan?root=${encodeURIComponent(root)}&depth=${depth}`);
+    if (inline) {
+      $("scan-count").textContent = d.models.length;
+      $("scan-list").innerHTML = d.models.length ? d.models.map(m => modelCard(m, true)).join("")
+        : '<div class="empty">没有找到可用的模型目录</div>';
+    }
+    return d.models;
+  } catch (e) {
+    if (inline) $("scan-list").innerHTML = `<div class="note err"><span>✕</span><div>${esc(e.message)}</div></div>`;
+    else toast(e.message, "err");
+    return [];
+  }
+}
+
+function modelCard(m, compact) {
+  const tags = [];
+  if (m.ftw) tags.push('<span class="badge brand">FTW · 可直启</span>');
+  if (m.safetensors) tags.push(`<span class="badge">safetensors ×${m.safetensors}</span>`);
+  if (m.gguf) tags.push(`<span class="badge">GGUF ×${m.gguf}</span>`);
+  if (m.arch) tags.push(`<span class="badge">${esc(m.arch)}</span>`);
+  if (m.bytes) tags.push(`<span class="badge">${fmtGB(m.bytes)}</span>`);
+  const btnConvert = (m.safetensors || m.gguf) && !m.ftw;
+  return `<div class="mcard">
+    <div class="t" title="${esc(m.path)}">${esc(m.name)}</div>
+    <div class="p">${esc(m.path)}</div>
+    <div class="meta">${tags.join("")}</div>
+    <div class="acts">
+      <button class="btn sm" onclick="pickSource('${esc(m.path).replace(/\\/g, "\\\\")}')">设为源</button>
+      ${btnConvert ? `<button class="btn sm" onclick="quickConvert('${esc(m.path).replace(/\\/g, "\\\\")}')">转 FTW</button>` : ""}
+      ${m.ftw ? `<button class="btn sm" onclick="quickServe('${esc(m.path).replace(/\\/g, "\\\\")}')">启动服务</button>` : ""}
+    </div>
+  </div>`;
+}
+
+function pickSource(p) {
+  $("in-model").value = p; inspectSource();
+  document.querySelector('.tab[data-tab="convert"]').click();
+  toast("已设为源模型");
+}
+function quickConvert(p) {
+  pickSource(p); suggestOut(true);
+  document.querySelector('.tab[data-tab="convert"]').click();
+  toast("参数已就绪，确认后点「开始转换」", "ok");
+}
+async function quickServe(p) {
+  $("s-model").value = p;
+  document.querySelector('.tab[data-tab="serve"]').click();
+  inspectServeModel();
+  toast("已填入模型，正在按显存预算调优…", "ok", 3000);
+  const ok = await autoTune(true);
+  toast(ok ? "参数已就绪，点「一键启动」即可" : "这个模型当前显存可能装不下，请看调优结果", ok ? "ok" : "warn", 7000);
+}
+function useConvertOut() {
+  const v = $("in-out").value.trim() || (
+    $("in-model").value.trim() ? $("in-model").value.trim().replace(/[\\\/]+$/, "") + S.settings.suffix : "");
+  if (!v) return toast("转换页还没设置源模型或输出目录", "warn");
+  $("s-model").value = v; inspectServeModel();
+  toast("已填入转换输出目录", "ok");
+}
+/** 直接跳到模型库扫描，卡片上点「启动服务」就能把路径带回来。 */
+function pickFromLibrary() {
+  const root = S.settings.root || "G:\\AI";
+  document.querySelector('.tab[data-tab="library"]').click();
+  if (!$("lib-root").value.trim()) $("lib-root").value = root;
+  scanLibrary();
+  toast("在卡片上点「启动服务」即可带回来", "ok", 6000);
+}
+
+/* ===================================================================== *
+ *  命令行预览
+ * ===================================================================== */
+function refreshCmdSame() { refreshCmd(); }
+function refreshCmd() {
+  const ft = S.ft || "ft.exe";
+  const model = $("in-model").value.trim() || "<源模型目录>";
+  let out = $("in-out").value.trim() || "<输出目录>";
+  const parts = [quote(ft), "checkpoint", "--model", quote(model), "--out", quote(out),
+    "--dtype", $("in-dtype").value, "--moe-backend", $("in-moe").value,
+    "--shard-gib", $("in-shard").value || "8"];
+  const gpu = $("in-gpu").value.trim();
+  if (gpu) parts.push("--gpu", quote(gpu));
+  const extra = $("in-extra").value.trim();
+  if (extra) parts.push(extra);
+  S.lastCmd = parts.join(" ");
+  $("cmd-preview").textContent = S.lastCmd;
+}
+const quote = s => /[\s&()]/.test(s) ? '"' + s + '"' : s;
+
+function copyCmd() {
+  copyText(S.lastCmd);
+}
+function downloadBat() {
+  const bat = [
+    "@echo off", "chcp 65001 >nul", "setlocal",
+    "echo === FreeToken FTW 转换 ===", "echo.", S.lastCmd, "echo.",
+    "if errorlevel 1 (echo.& echo [失败] 退出码 %errorlevel% & pause & exit /b %errorlevel%)",
+    "echo.& echo [完成] 输出目录：",
+    "echo   " + ($("in-out").value.trim() || ""),
+    "pause",
+  ].join("\r\n");
+  download("convert-ftw.bat", bat);
+}
+
+/* ===================================================================== *
+ *  转换流程
+ * ===================================================================== */
+async function startConvert() {
+  if (!S.online) return toast("命令行模式无法直接执行，请复制命令或下载 .bat", "warn");
+  const body = {
+    ft: S.ft,
+    modelPath: $("in-model").value.trim(),
+    outPath: $("in-out").value.trim(),
+    dtype: $("in-dtype").value,
+    moeBackend: $("in-moe").value,
+    shardGiB: parseFloat($("in-shard").value) || 8,
+    gpu: $("in-gpu").value.trim(),
+    extraArgs: $("in-extra").value.trim(),
+    overwrite: false,
+  };
+  if (!body.modelPath) return toast("请先选择源模型目录", "warn");
+
+  $("btn-convert").disabled = true;
+  try {
+    let r;
+    try {
+      r = await api("/api/convert/start", { method: "POST", body: JSON.stringify(body) });
+    } catch (e) {
+      if (/不存在|没找到|不足|不能和源目录/.test(e.message)) throw e;
+      throw e;
+    }
+    if (r.needConfirm) {
+      const ok = confirm(
+        "⚠ 输出目录已存在且非空：\n\n" + r.outPath +
+        "\n\n继续将先删除该目录下的全部内容，然后重新转换。" +
+        "\n预计需要 " + r.estimatedGB + " GB，磁盘剩余 " + r.freeGB + " GB。" +
+        "\n\n确定要删除并继续吗？");
+      if (!ok) { toast("已取消", "warn"); return; }
+      body.overwrite = true;
+      r = await api("/api/convert/start", { method: "POST", body: JSON.stringify(body) });
+    }
+    S.convertTask = r.taskId;
+    S.convertOffset = 0;
+    S.progressLineIdx = -1;
+    S.logLines = [];
+    $("console-convert").textContent = "";
+    $("cmd-preview").textContent = (r.cmd || []).join(" ");
+    S.lastCmd = (r.cmd || []).join(" ");
+    setProg(0, "转换中…", true);
+    $("btn-cancel").disabled = false;
+    logSys("转换开始 · 源 " + body.modelPath);
+    logSys("输出 " + r.outPath + " · 预计 " + r.estimatedGB + " GB");
+    startPolling();
+    toast("转换已开始", "ok");
+  } catch (e) {
+    toast(e.message, "err", 7000);
+    $("btn-convert").disabled = false;
+  }
+}
+
+async function cancelTask() {
+  const id = S.convertTask || S.serveTask;
+  if (!id) return;
+  try { await api("/api/task/cancel", { method: "POST", body: JSON.stringify({ id }) }); toast("已发送终止信号", "warn"); }
+  catch (e) { toast(e.message, "err"); }
+}
+
+function startPolling() {
+  if (S.pollTimer) clearInterval(S.pollTimer);
+  S.pollTimer = setInterval(pollOnce, 600);
+  pollOnce();
+}
+async function pollOnce() {
+  let busy = false;
+  if (S.convertTask) busy = await pollTask(S.convertTask, "convert") || busy;
+  if (S.serveTask) busy = await pollTask(S.serveTask, "serve") || busy;
+  if (!busy && S.pollTimer && !S.convertTask && !S.serveTask) { clearInterval(S.pollTimer); S.pollTimer = null; }
+}
+
+async function pollTask(id, kind) {
+  let d;
+  try {
+    d = await api(`/api/task?id=${id}&offset=${kind === "convert" ? S.convertOffset : S.serveOffset}`);
+  } catch { return false; }
+  if (kind === "convert") S.convertOffset = d.offset; else S.serveOffset = d.offset;
+
+  if (kind === "convert") {
+    const con = $("console-convert");
+    (d.lines || []).forEach(l => appendLine(con, l));
+    const p = d.progress || {};
+    setProg(p.percent, null, d.status === "running");
+    $("prog-elapsed").textContent = fmtDur(d.elapsed);
+    $("prog-eta").textContent = d.eta !== null && d.eta !== undefined ? fmtDur(d.eta) : "—";
+    $("prog-speed").textContent = p.speed || "—";
+    $("prog-detail").textContent = p.detail || "—";
+  } else {
+    if (d.phase) setStage(d.phase, d.status, d.progress);
+    (d.lines || []).forEach(pushServeLine);
+    if (d.pid) $("svc-pid").textContent = d.pid;
+    if (d.status === "running") S.svcElapsed = d.elapsed;
+  }
+
+  if (d.status !== "running") {
+    const ok = d.status === "done";
+    if (kind === "convert") {
+      setProg(ok ? 100 : null, ok ? "转换完成" : (d.status === "cancelled" ? "已取消" : "转换失败"), false);
+      $("btn-convert").disabled = false;
+      $("btn-cancel").disabled = true;
+      logSys(`=== 进程退出 code=${d.exitCode} status=${d.status} ===`, ok ? "l-ok" : "l-err");
+      if (ok) {
+        const out = (d.meta && d.meta.outPath) || $("in-out").value;
+        $("s-model").value = out; inspectServeModel();
+        toast("转换完成：" + out, "ok", 8000);
+      } else {
+        toast("转换失败，请看运行日志", "err", 8000);
+      }
+      S.convertTask = null;
+    } else {
+      pushServeLine(`=== 服务进程退出 code=${d.exitCode} status=${d.status} ===`,
+                    ok ? "l-ok" : "l-err");
+      setStage(ok ? "已停止" : "进程异常退出", ok ? "done" : "error", null);
+      $("btn-serve").disabled = false; $("btn-quick").disabled = false;
+      $("btn-stop").disabled = true; $("btn-restart").disabled = true;
+      $("s-health").className = "badge " + (ok ? "" : "err");
+      $("s-health").textContent = ok ? "服务结束" : "服务异常退出";
+      S.serveTask = null;
+      stopWatch();
+      checkHealth();
+    }
+    return false;
+  }
+  return true;
+}
+
+function setProg(pct, label, running) {
+  const bar = $("prog-bar");
+  if (pct === null || pct === undefined) {
+    bar.classList.toggle("indet", !!running);
+    $("prog-pct").textContent = running ? "…" : "—";
+  } else {
+    bar.classList.remove("indet");
+    bar.firstElementChild.style.width = Math.max(0, Math.min(100, pct)) + "%";
+    $("prog-pct").textContent = pct.toFixed(1) + "%";
+  }
+  if (label) $("prog-state").textContent = label;
+  else $("prog-state").textContent = running ? "转换中" : "空闲";
+}
+
+/* ===================================================================== *
+ *  日志渲染（转换页）
+ * ===================================================================== */
+const PROG_MARK = /[█▉▊▋▌▍▎▏]|[#=]{3,}|\[00:|\d+(?:\.\d+)?\s*[GMK]?B?\/s/;
+function isProgressLine(line) {
+  if (!/\d{1,3}(?:\.\d+)?\s*%/.test(line)) return false;
+  return PROG_MARK.test(line);
+}
+function appendLine(con, line) {
+  if (isProgressLine(line)) {
+    const last = con.lastElementChild;
+    if (last && last.classList.contains("l-prog-live")) {
+      last.textContent = line;
+      last.title = line;
+    } else {
+      const div = document.createElement("div");
+      div.className = "l-prog l-prog-live";
+      div.textContent = line;
+      div.title = line;
+      con.appendChild(div);
+    }
+  } else {
+    const div = document.createElement("div");
+    div.className = "l-" + classify(line);
+    div.textContent = line;
+    div.title = line;
+    con.appendChild(div);
+  }
+  while (con.childElementCount > 6000) con.removeChild(con.firstChild);
+  if (con === $("console-convert") && $("log-autoscroll").checked) con.scrollTop = con.scrollHeight;
+  S.logLines.push(line);
+  if (S.logLines.length > 6000) S.logLines = S.logLines.slice(-6000);
+}
+function classify(l) {
+  // llama.cpp 的日志形态：0.00.249.142 W srv  llama_server: …（时间戳 + 级别字母 + 模块）
+  const lm = /^\d+(?:\.\d+){2,3}\s+([EWID])\s/.exec(l);
+  if (lm) {
+    if (lm[1] === "E") return "err";
+    if (lm[1] === "W") return "warn";
+  }
+  if (/Traceback|AssertionError|\bError\b|\bERROR\b|错误|失败|not enough|out of memory|CUDA error|OOM/i.test(l)) return "err";
+  if (/WARN|warning|已取消|deprecat/i.test(l)) return "warn";
+  if (/listening on http|is ready to serve|API ready|服务已就绪|model loaded|SUCCESS|完成|ready|Ready|\[已取消\]/.test(l)) return "ok";
+  if (/Started server process|Uvicorn running|Loading weights|Loading model|load_model:|capturing CUDA|Capturing CUDA|llama_model_loader|llama_kv_cache|llama_context/.test(l)) return "stage";
+  if (/^\s*\|?[\s█▉▊▋▌▍▎▏=#>-]+\|?\s*\d/.test(l)) return "prog";
+  return "sys";
+}
+function logSys(t, cls) {
+  const con = $("console-convert");
+  const d = document.createElement("div");
+  d.className = cls || "l-sys"; d.textContent = t; con.appendChild(d);
+  con.scrollTop = con.scrollHeight;
+}
+function clearLog() { $("console-convert").textContent = ""; S.logLines = []; }
+function copyLog() { copyText(S.logLines.join("\n")); }
+
+/* ===================================================================== *
+ *  服务 —— 日志管线
+ * ===================================================================== */
+const MAX_SERVE_LOG = 6000;
+
+/** 过滤模式：all = 全部 / key = 关键（去掉 tqdm 进度刷屏）/ err = 只看错误 */
+function setLogLevel(lv) {
+  S.logLevel = lv;
+  document.querySelectorAll("#log-level button").forEach(b =>
+    b.classList.toggle("on", b.dataset.lv === lv));
+  renderServeLog();
+}
+let findTimer = null;
+function onLogFind() {
+  clearTimeout(findTimer);
+  findTimer = setTimeout(() => { S.logFind = $("log-find").value.trim().toLowerCase(); renderServeLog(); }, 180);
+}
+function serveLineVisible(l) {
+  const cls = classify(l);
+  if (S.logLevel === "err" && cls !== "err") return false;
+  if (S.logLevel === "key" && (isProgressLine(l) || cls === "prog")) return false;
+  if (S.logFind && l.toLowerCase().indexOf(S.logFind) < 0) return false;
+  return true;
+}
+function hlLine(l) {
+  const e = esc(l);
+  if (!S.logFind) return e;
+  try {
+    const re = new RegExp(S.logFind.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "gi");
+    return e.replace(re, m => `<span class="hit">${m}</span>`);
+  } catch { return e; }
+}
+/** 单行追加（过滤条件为空时走这条快路径，避免整块重排）。 */
+function pushServeLine(line, forceClass) {
+  line = String(line).replace(/\s+$/, "");
+  if (!line) return;
+  S.serveLines.push(line);
+  let dropped = 0;
+  if (S.serveLines.length > MAX_SERVE_LOG) {
+    dropped = S.serveLines.length - MAX_SERVE_LOG;
+    S.serveLines = S.serveLines.slice(-MAX_SERVE_LOG);
+  }
+  const con = $("console-serve");
+  if (!con) return;
+  if (S.logLevel === "all" && !S.logFind) {
+    if (isProgressLine(line)) {
+      const last = con.lastElementChild;
+      if (last && last.classList.contains("l-prog-live")) { last.textContent = line; last.title = line; }
+      else {
+        const div = document.createElement("div");
+        div.className = "l-prog l-prog-live"; div.textContent = line; div.title = line;
+        con.appendChild(div);
+      }
+    } else {
+      const div = document.createElement("div");
+      div.className = forceClass || ("l-" + classify(line));
+      div.textContent = line; div.title = line;
+      con.appendChild(div);
+    }
+    for (let i = 0; i < dropped; i++) if (con.firstChild) con.removeChild(con.firstChild);
+  } else if (serveLineVisible(line)) {
+    const div = document.createElement("div");
+    div.className = forceClass || ("l-" + classify(line));
+    div.innerHTML = hlLine(line); div.title = line;
+    con.appendChild(div);
+  }
+  while (con.childElementCount > MAX_SERVE_LOG) con.removeChild(con.firstChild);
+  if ($("svc-autoscroll").checked) con.scrollTop = con.scrollHeight;
+  logCount();
+}
+/** 过滤条件变化时整体重建。 */
+function renderServeLog() {
+  const con = $("console-serve");
+  if (!con) return;
+  con.textContent = "";
+  let lastProg = null;
+  S.serveLines.forEach(l => {
+    if (!serveLineVisible(l)) return;
+    if (isProgressLine(l) && S.logLevel === "all" && !S.logFind) {
+      if (lastProg) { lastProg.textContent = l; lastProg.title = l; return; }
+      const div = document.createElement("div");
+      div.className = "l-prog l-prog-live"; div.textContent = l; div.title = l;
+      con.appendChild(div); lastProg = div; return;
+    }
+    lastProg = null;
+    const div = document.createElement("div");
+    div.className = "l-" + classify(l);
+    if (S.logFind) div.innerHTML = hlLine(l); else div.textContent = l;
+    div.title = l;
+    con.appendChild(div);
+  });
+  con.scrollTop = con.scrollHeight;
+  logCount();
+}
+function logCount() {
+  const el = $("log-count");
+  if (!el) return;
+  const shown = $("console-serve").childElementCount;
+  el.textContent = shown === S.serveLines.length
+    ? `${S.serveLines.length} 行`
+    : `${shown} / ${S.serveLines.length} 行`;
+}
+function clearServeLog() {
+  S.serveLines = []; $("console-serve").textContent = ""; logCount();
+}
+function copyServeLog() {
+  if (!S.serveLines.length) return toast("日志还是空的", "warn");
+  copyText(S.serveLines.join("\n"));
+}
+function downloadServeLog() {
+  if (!S.serveLines.length) return toast("日志还是空的", "warn");
+  const p = $("svc-port").textContent.trim();
+  const name = `freetoken-serve-${p && p !== "—" ? p + "-" : ""}${new Date().toISOString().slice(0, 19).replace(/[:T]/g, "")}.log`;
+  download(name, S.serveLines.join("\r\n"));
+}
+/** 工具自己写的提示行（不是引擎输出），单独着色便于区分。 */
+function logServe(t) { pushServeLine(t, "l-sys"); }
+
+function setStage(phase, status, prog) {
+  const el = $("s-stage");
+  if (!el) return;
+  const bad = ["显存不足", "启动失败", "权重不完整"].includes(phase);
+  let cls = "stage ";
+  if (status !== "running") cls += bad ? "bad" : (status === "done" ? "good" : "");
+  else cls += bad ? "bad" : (phase === "就绪" ? "good" : "busy");
+  el.className = cls;
+  el.textContent = phase || "启动中…";
+  const bar = $("svc-loadbar");
+  if (!bar) return;
+  const pct = (prog && typeof prog.percent === "number") ? prog.percent : null;
+  if (status === "running" && !bad && phase !== "就绪") {
+    bar.style.display = "";
+    const i = bar.firstElementChild;
+    if (pct === null) { bar.classList.add("indet"); i.style.width = ""; }
+    else { bar.classList.remove("indet"); i.style.width = Math.max(2, Math.min(100, pct)) + "%"; }
+  } else {
+    bar.style.display = "none";
+  }
+}
+
+/* ===================================================================== *
+ *  服务 —— 状态 / 生命周期
+ * ===================================================================== */
+async function inspectServeModel() {
+  const p = $("s-model").value.trim();
+  if (!p || !S.online) {
+    $("s-model-info").innerHTML = '<div class="kv"><i>格式</i><b class="sm" style="color:var(--muted)">—</b></div>';
+    return;
+  }
+  try {
+    const d = await api("/api/fs/inspect?path=" + encodeURIComponent(p));
+    $("s-model-info").innerHTML =
+      `<div class="kv"><i>格式</i><b>${d.ftw ? "FTW（加载最快）" : (d.safetensors ? "safetensors（原始 HF）" : (d.gguf ? "GGUF" : "其他"))}</b></div>
+       <div class="kv"><i>大小</i><b>${fmtGB(d.bytes)}</b></div>
+       <div class="kv"><i>架构</i><b class="sm">${esc(d.arch || "—")}</b></div>`;
+    if (!d.ftw && d.safetensors) {
+      $("s-model-info").innerHTML += '<div class="kv" style="grid-column:1/-1"><i>提示</i><b class="sm" style="color:var(--warn)">原始 HF 目录也能跑，但 FTW 加载更快、更省显存</b></div>';
+    }
+  } catch (e) {
+    $("s-model-info").innerHTML = `<div class="kv" style="grid-column:1/-1"><i>错误</i><b class="sm" style="color:var(--err)">${esc(e.message)}</b></div>`;
+  }
+}
+
+function toggleAdv() {
+  const el = $("serve-adv");
+  el.classList.toggle("hidden");
+  $("btn-adv").textContent = el.classList.contains("hidden") ? "高级参数" : "收起参数";
+}
+
+/** 按显存预算公式反推安全启动参数。引擎的算法是
+ *    KV = memory_ratio × 空闲显存 − 权重 − GDN 状态池
+ *  而 GDN 状态池槽位 = 4×并发 + max(4, 2×并发) + 1（radix），
+ *  并发一高就成倍吃显存 —— 这才是 "Not enough memory for KV cache" 的真凶。 */
+async function autoTune(silent) {
+  if (!S.online) { if (!silent) toast("需要后端服务才能自动调优", "warn"); return false; }
+  const p = $("s-model").value.trim() || $("in-out").value.trim();
+  if (!p) { if (!silent) toast("请先在「选择模型」里指定目录", "warn"); return false; }
+  if (!$("s-model").value.trim()) $("s-model").value = p;
+  const want = parseInt($("s-conc").value) || 4;
+  $("tune-badge").className = "badge warn";
+  $("tune-badge").textContent = "计算中…";
+  try {
+    const d = await api(`/api/preflight?path=${encodeURIComponent(p)}&gpu=${$("s-gpu").value || 0}&conc=${want}`);
+    const r = d.recommended;
+    if (!r) {
+      $("tune-badge").className = "badge err";
+      $("tune-badge").textContent = "装不下";
+    } else {
+      $("s-ratio").value = r.memoryRatio;
+      $("s-conc").value = r.maxRunningReq;
+      $("s-prefill").value = r.maxPrefillLength;
+      $("s-cache").value = r.cacheType;
+      $("tune-badge").className = "badge ok";
+      $("tune-badge").textContent = `已调优 · ratio ${r.memoryRatio} · 并发 ${r.maxRunningReq}`;
+    }
+    $("tune-result").innerHTML = `
+      <div class="strip" style="margin-top:13px">
+        <div class="kv"><i>权重</i><b>${d.weightsGB} GB</b></div>
+        <div class="kv"><i>空闲显存</i><b>${d.freeGB} GB</b></div>
+        <div class="kv"><i>memory-ratio</i><b style="color:var(--brand)">${d.ratio}</b></div>
+        <div class="kv"><i>可用池</i><b>${d.poolGB} GB</b></div>
+        <div class="kv"><i>线性层单请求</i><b>${d.gdnPerReqGB} GB</b></div>
+        <div class="kv"><i>图形/激活预留</i><b>${d.headroomGB} GB</b></div>
+      </div>
+      ${d.gdnLayers ? `<div class="hint" style="margin-top:10px">
+        该模型有 <b>${d.gdnLayers} 层线性注意力（GDN）</b>，状态池槽位随并发放大：
+        radix 下 <code>4×并发 + max(4, 2×并发) + 1</code>，并发 4 就是 25 槽。点下面任意一行可直接套用。</div>` : ""}
+      <div class="opts"><table>
+        <thead><tr><th>并发</th><th>缓存</th><th>GDN 槽位</th><th>状态池</th><th>KV 余量</th><th>结论</th></tr></thead>
+        <tbody>${(d.options || []).map(o => `
+          <tr class="${o.ok ? "ok" : "bad"}${r && o.maxRunningReq === r.maxRunningReq && o.cacheType === r.cacheType ? " pick" : ""}"
+              ${o.ok ? `onclick="applyOption(${o.maxRunningReq},'${o.cacheType}',this)"` : ""}>
+            <td><b>${o.maxRunningReq}</b></td>
+            <td>${o.cacheType}</td>
+            <td>${o.slots}</td>
+            <td>${o.stateGB} GB</td>
+            <td style="color:${o.kvGB > 1 ? "var(--ok)" : "var(--err)"}"><b>${o.kvGB} GB</b></td>
+            <td>${o.ok ? "可启动" : "显存不足"}</td>
+          </tr>`).join("")}</tbody>
+      </table></div>
+      ${(d.warnings || []).map(w =>
+        `<div class="note warn" style="margin-top:10px"><span>⚠</span><div>${esc(w)}</div></div>`).join("")}`;
+    if (!silent && r) toast(`可行方案：ratio ${r.memoryRatio} · 并发 ${r.maxRunningReq} · ${r.cacheType} 缓存`, "ok", 6000);
+    else if (!silent) toast("当前空闲显存装不下这个模型，请看下方提示", "err", 7000);
+    return !!r;
+  } catch (e) {
+    $("tune-badge").className = "badge err";
+    $("tune-badge").textContent = "调优失败";
+    $("tune-result").innerHTML = `<div class="note err" style="margin-top:12px"><span>✕</span><div>${esc(e.message)}</div></div>`;
+    if (!silent) toast(e.message, "err");
+    return false;
+  }
+}
+
+function applyOption(conc, cacheType, row) {
+  $("s-conc").value = conc;
+  $("s-cache").value = cacheType;
+  document.querySelectorAll("#tune-result tr.pick").forEach(t => t.classList.remove("pick"));
+  if (row) row.classList.add("pick");
+  toast(`已套用：并发 ${conc} · ${cacheType} 缓存`, "ok");
+}
+
+async function quickLaunch() {
+  if (!S.online) return toast("需要后端服务才能启动模型", "warn");
+  if (S.serveTask) return toast("已有服务在运行，请先停止或点「重启」", "warn");
+  if (!(await autoTune(true))) return;
+  await startServe();
+}
+
+async function startServe() {
+  if (!S.online) return toast("需要后端服务才能启动模型", "warn");
+  const modelPath = $("s-model").value.trim();
+  if (!modelPath) return toast("请先选择模型目录", "warn");
+  if (S.serveTask) return toast("已有服务在运行，请先停止或点「重启」", "warn");
+  const body = {
+    ft: S.ft, modelPath,
+    port: $("s-port").value || "8421",
+    maxRunningReq: $("s-conc").value,
+    memoryRatio: ($("s-ratio").value || "").trim(),      // 空 = 让后端按实际显存自动算
+    maxPrefillLength: ($("s-prefill").value || "").trim(),
+    cacheType: $("s-cache").value,
+    nvfp4Backend: $("s-nvfp4").value,
+    gpu: $("s-gpu").value.trim(),
+    extraArgs: $("s-extra").value.trim(),
+  };
+  $("btn-serve").disabled = true; $("btn-quick").disabled = true;
+  try {
+    const r = await api("/api/serve/start", { method: "POST", body: JSON.stringify(body) });
+    S.serveTask = r.taskId; S.serveOffset = 0; S.svcPort = r.port; S.svcElapsed = 0;
+    clearServeLog();
+    logServe("启动命令: " + (r.cmd || []).join(" "));
+    if (r.plan && r.plan.recommended) {
+      const rec = r.plan.recommended;
+      logServe(`后端按当前显存自动选参：ratio ${rec.memoryRatio} · 并发 ${rec.maxRunningReq} · ${rec.cacheType} 缓存`);
+      $("s-ratio").value = rec.memoryRatio;
+      $("s-conc").value = rec.maxRunningReq;
+      $("s-cache").value = rec.cacheType;
+    }
+    logServe(`端口 ${r.port} · 首次加载要读权重并捕获 CUDA graph，请耐心等待`);
+    setStage("启动中", "running", null);
+    $("btn-stop").disabled = false; $("btn-restart").disabled = false; $("btn-openapi").disabled = false;
+    $("s-health").className = "badge warn"; $("s-health").textContent = "加载中";
+    addChatPort(r.port);
+    startPolling(); startWatch(r.port); refreshGpu();
+    toast("服务启动中，端口 " + r.port, "ok");
+  } catch (e) {
+    toast(e.message, "err", 8000);
+    logServe("启动失败: " + e.message);
+    $("btn-serve").disabled = false; $("btn-quick").disabled = false;
+  }
+}
+
+let healthTimer = null, gpuTimer = null, statsTimer = null;
+function startWatch(port) {
+  stopWatch();
+  healthTimer = setInterval(checkHealth, 2500);
+  gpuTimer = setInterval(refreshGpu, 8000);
+  statsTimer = setInterval(refreshStats, 4000);
+  checkHealth(); refreshGpu(); refreshStats();
+}
+function stopWatch() {
+  if (healthTimer) { clearInterval(healthTimer); healthTimer = null; }
+  if (gpuTimer) { clearInterval(gpuTimer); gpuTimer = null; }
+  if (statsTimer) { clearInterval(statsTimer); statsTimer = null; }
+}
+function clearMetrics() {
+  ["m-decode", "m-prefill", "m-active", "m-done", "m-ttft", "m-ctx"].forEach(id => {
+    const el = $(id); if (el) el.textContent = "—";
+  });
+  $("m-badge").className = "badge"; $("m-badge").textContent = "无数据";
+  $("m-sampling").classList.add("hidden");
+  S.sampling = null;
+}
+async function checkHealth() {
+  if (!S.online) return;
+  if (!S.serveTask && !S.svcPort) return;
+  try {
+    const q = S.serveTask ? `id=${S.serveTask}` : `port=${S.svcPort}`;
+    applySvcStatus(await api("/api/serve/status?" + q));
+  } catch {}
+}
+function applySvcStatus(st) {
+  if (!st) return;
+  S.svcPort = st.port || S.svcPort;
+  // 顶部环境条上的「服务」状态同步
+  const dSrv = $("d-srv"), pSrv = $("p-srv");
+  if (dSrv && pSrv) {
+    if (st.state === "ok") { dSrv.className = "dot ok"; pSrv.textContent = "服务 就绪 :" + st.port; }
+    else if (st.state === "loading") { dSrv.className = "dot warn pulse"; pSrv.textContent = "服务 加载中 :" + st.port; }
+    else if (st.state === "error") { dSrv.className = "dot err"; pSrv.textContent = "服务 启动失败"; }
+    else if (st.anyRunning) { dSrv.className = "dot warn pulse"; pSrv.textContent = "服务 启动中"; }
+    else { dSrv.className = "dot"; pSrv.textContent = "服务 未运行"; }
+  }
+  const bar = $("svcbar");
+  if (!bar) return;
+  $("svc-port").textContent = st.port || "—";
+  $("svc-pid").textContent = st.pid || "—";
+  $("svc-api").textContent = st.port ? `127.0.0.1:${st.port}/v1` : "—";
+  const up = st.health && st.health.uptime_s;
+  $("svc-uptime").textContent = up != null ? fmtDur(up)
+    : (st.taskStatus === "running" && st.elapsed != null ? fmtDur(st.elapsed) : "—");
+
+  const title = $("svc-title"), sub = $("svc-sub");
+  if (st.state === "ok") {
+    bar.className = "svcbar good";
+    title.textContent = "模型已就绪";
+    sub.textContent = `可以直接调用 http://127.0.0.1:${st.port}/v1（OpenAI 兼容）`;
+    $("s-health").className = "badge ok"; $("s-health").textContent = "已就绪 :" + st.port;
+    setStage("就绪", "running", { percent: 100 });
+  } else if (st.state === "loading") {
+    bar.className = "svcbar busy";
+    title.textContent = "正在加载 · " + st.label;
+    sub.textContent = st.percent != null
+      ? `已完成 ${st.percent}%，加载完自动转为就绪`
+      : "权重读取 + CUDA graph 捕获中，通常 1～5 分钟";
+    $("s-health").className = "badge warn"; $("s-health").textContent = "加载中 · " + st.label;
+  } else if (st.state === "error") {
+    bar.className = "svcbar bad";
+    title.textContent = "启动失败";
+    sub.textContent = String(st.label).slice(0, 160);
+    $("s-health").className = "badge err"; $("s-health").textContent = "启动失败";
+  } else if (st.state === "stopped") {
+    bar.className = "svcbar idle";
+    title.textContent = "已停止";
+    sub.textContent = "显存已释放，可以重新启动或换模型";
+    $("s-health").className = "badge"; $("s-health").textContent = "已停止";
+    clearMetrics();
+  } else if (st.state === "down") {
+    bar.className = "svcbar idle";
+    title.textContent = st.anyRunning ? "进程还在，端口尚未监听" : "这个端口上没有服务";
+    sub.textContent = st.anyRunning ? "uvicorn 正在起来，稍等几秒" : "选好模型后「启动服务」，或换个端口";
+    $("s-health").className = "badge"; $("s-health").textContent = "未监听";
+    $("svc-uptime").textContent = "—";
+    if (!st.anyRunning) clearMetrics();
+  }
+}
+async function refreshGpu() {
+  if (!S.online) return;
+  try {
+    const d = await api("/api/gpu");
+    const g = (d.gpus || [])[0];
+    $("svc-gpu").textContent = g && g.freeMiB != null ? (g.freeMiB / 1024).toFixed(1) + " G" : "—";
+    if (g) {
+      $("d-gpu").className = "dot " + (g.freeMiB / g.totalMiB > 0.25 ? "ok" : "warn");
+      $("p-gpu").textContent = g.name.replace("NVIDIA GeForce ", "").replace("NVIDIA ", "") +
+        " · 空闲 " + (g.freeMiB / 1024).toFixed(1) + "G";
+    }
+  } catch {}
+}
+
+/** 引擎的 /v1/stats：吞吐、TTFT、以及模型自己推荐的采样参数。 */
+async function refreshStats() {
+  if (!S.online) return;
+  const port = S.svcPort || $("c-port").value;
+  if (!port) return;
+  let d;
+  try { d = await api("/api/serve/stats?port=" + encodeURIComponent(port)); } catch { return; }
+  const st = d && d.stats;
+  if (!st) {
+    $("m-badge").className = "badge"; $("m-badge").textContent = "无数据";
+    return;
+  }
+  const tp = st.throughput || {}, rq = st.requests || {}, md = st.model || {};
+  const num = (v, u, p = 1) => (v === null || v === undefined) ? "—" : (Number(v).toFixed(p) + (u || ""));
+  $("m-decode").textContent = num(tp.decode_tps, " t/s");
+  $("m-prefill").textContent = num(tp.prefill_tps, " t/s");
+  $("m-active").textContent = rq.active ?? 0;
+  $("m-done").textContent = rq.completed ?? 0;
+  $("m-ttft").textContent = rq.ttft_mean_ms ? Math.round(rq.ttft_mean_ms) + " ms" : "—";
+  $("m-ctx").textContent = md.ctx ? md.ctx.toLocaleString() : "—";
+  $("m-badge").className = "badge ok";
+  $("m-badge").textContent = "实时";
+  $("m-model").innerHTML =
+    `模型 <b>${esc(md.id || "—")}</b> · 注意力 <code>${esc(md.attn || "—")}</code>` +
+    (md.moe ? " · MoE" : " · 密集") +
+    ` · 已运行 ${fmtDur(st.uptime_s || 0)}`;
+  const s = md.sampling || {};
+  if (s.temperature !== undefined) {
+    S.sampling = s;
+    $("m-sampling").classList.remove("hidden");
+    $("m-samp-text").textContent =
+      `temperature=${s.temperature}` +
+      (s.top_k !== undefined ? ` · top_k=${s.top_k}` : "") +
+      (s.top_p !== undefined ? ` · top_p=${s.top_p}` : "");
+  } else {
+    S.sampling = null;
+    $("m-sampling").classList.add("hidden");
+  }
+}
+function applySampling() {
+  const s = S.sampling;
+  if (!s) return toast("引擎没有给出推荐采样参数", "warn");
+  if (s.temperature !== undefined) $("c-temp").value = s.temperature;
+  if (s.top_k !== undefined) $("c-topk").value = s.top_k;
+  if (s.top_p !== undefined) $("c-topp").value = s.top_p;
+  toast("已套用模型推荐采样参数", "ok");
+}
+function copyApi() {
+  const p = $("svc-port").textContent.trim();
+  if (!p || p === "—") return toast("还没有运行中的服务", "warn");
+  const url = `http://127.0.0.1:${p}/v1`;
+  copyText(url);
+  toast("已复制：" + url, "ok");
+}
+async function stopServe(silent) {
+  if (!S.serveTask) { if (!silent) toast("当前没有由本工具托管的服务", "warn"); return true; }
+  if (!silent && !confirm("确定停止模型服务？显存会被释放。")) return false;
+  try {
+    await api("/api/serve/stop", { method: "POST", body: JSON.stringify({ id: S.serveTask }) });
+    logServe("已发送停止信号，正在回收显存…");
+    S.serveTask = null; stopWatch(); clearMetrics();
+    $("btn-serve").disabled = false; $("btn-quick").disabled = false;
+    $("btn-stop").disabled = true; $("btn-restart").disabled = true;
+    $("s-health").className = "badge"; $("s-health").textContent = "已停止";
+    setStage("已停止", "done", null);
+    if (!silent) toast("已停止", "warn");
+    setTimeout(checkHealth, 1200);
+    return true;
+  } catch (e) { toast(e.message, "err"); return false; }
+}
+async function restartServe() {
+  if (!confirm("重启模型服务？会先停止当前进程，再用同样的参数重新加载（约 1～5 分钟）。")) return;
+  const port = $("s-port").value || S.svcPort;
+  const model = $("s-model").value.trim();
+  await stopServe(true);
+  // 等端口真正空出来，否则会被「端口已被占用」拦下
+  for (let i = 0; i < 24 && port; i++) {
+    await new Promise(r => setTimeout(r, 600));
+    try {
+      const st = await api("/api/serve/status?port=" + encodeURIComponent(port));
+      if (st.state === "down") break;
+    } catch { break; }
+  }
+  if (port) $("s-port").value = port;
+  if (model) $("s-model").value = model;
+  await startServe();
+}
+function addChatPort(port) {
+  const sel = $("c-port"); if (!sel || !port) return;
+  port = String(port);
+  if (![...sel.options].some(o => o.value === port)) {
+    sel.insertAdjacentHTML("beforeend", `<option value="${esc(port)}">:${esc(port)}</option>`);
+  }
+  sel.value = port;
+}
+function refreshChatHint() {}
+
+/* ===================================================================== *
+ *  生成测试
+ * ===================================================================== */
+function applyPreset() {
+  const v = $("c-preset").value;
+  const map = {
+    quick: ["1+1=? 直接回答数字。", 20],
+    zh: ["用一句话介绍你自己。", 300],
+    math: ["一个班有 40 名学生，其中 60% 是女生。女生中有 1/4 戴眼镜。戴眼镜的女生有多少人？请给出推理过程和答案。", 800],
+    long: ["写一段 300 字左右的短文，介绍黄山四季的景色。", 900],
+  };
+  if (map[v]) { $("c-input").value = map[v][0]; $("c-max").value = map[v][1]; toast("已套用预设"); }
+}
+
+async function sendChat() {
+  if (!S.online) return toast("需要后端服务才能测试生成", "warn");
+  const port = ($("c-port").value || $("s-port").value || "8421").trim();
+  const text = $("c-input").value.trim();
+  if (!text) return;
+  const log = $("chatlog");
+  if (log.querySelector(".empty")) log.innerHTML = "";
+  log.insertAdjacentHTML("beforeend",
+    `<div class="msg user"><div class="who">你</div><div class="body">${esc(text)}</div></div>`);
+  const pend = document.createElement("div");
+  pend.className = "msg";
+  pend.innerHTML = '<div class="who">模型</div><div class="body"><span class="spin"></span> 生成中…</div>';
+  log.appendChild(pend); log.scrollTop = log.scrollHeight;
+  $("btn-chat").disabled = true;
+
+  const t0 = Date.now();
+  try {
+    const r = await api("/api/chat", {
+      method: "POST",
+      body: JSON.stringify({
+        port, model: "local",
+        messages: [{ role: "user", content: text }],
+        maxTokens: parseInt($("c-max").value) || 512,
+        temperature: parseFloat($("c-temp").value),
+        topK: $("c-topk").value === "" ? null : parseInt($("c-topk").value),
+        topP: $("c-topp").value === "" ? null : parseFloat($("c-topp").value),
+        timeout: 900,
+      }),
+    });
+    const warn = qualityCheck(r);
+    let html = '<div class="who">模型' +
+      ` <span class="badge">${r.latency || ((Date.now() - t0) / 1000).toFixed(1)}s</span>` +
+      (r.usage && r.usage.completion_tokens ? ` <span class="badge">${r.usage.completion_tokens} tok</span>` : "") +
+      (r.finish ? ` <span class="badge">${esc(r.finish)}</span>` : "") +
+      (warn ? `<span class="badge err">${esc(warn)}</span>` : "") + "</div>";
+    if (r.reasoning) html += `<div class="thinkblock"><div class="body think">${esc(r.reasoning)}</div></div>`;
+    html += `<div class="body">${esc(r.content) || '<span style="color:var(--muted)">（正文为空，可能全部 Token 都被思考链消耗，请调大 max_tokens）</span>'}</div>`;
+    pend.innerHTML = html;
+    $("chat-stat").className = "badge " + (warn ? "err" : "ok");
+    $("chat-stat").textContent = warn ? warn : "输出正常";
+    $("chat-meta").textContent = `总耗时 ${((Date.now() - t0) / 1000).toFixed(1)}s`;
+    if (warn) toast("检测到输出异常：" + warn, "err", 8000);
+  } catch (e) {
+    pend.innerHTML = `<div class="who">模型</div><div class="note err" style="margin-top:4px">
+      <span>✕</span><div>${esc(e.message)}</div></div>`;
+    $("chat-stat").className = "badge err"; $("chat-stat").textContent = "请求失败";
+  } finally {
+    $("btn-chat").disabled = false;
+    log.scrollTop = log.scrollHeight;
+  }
+}
+
+/** 用启发式规则判断输出是否像乱码，帮助快速区分「参数没调好」和「真的坏了」。 */
+function qualityCheck(r) {
+  const txt = (r.content || "") + (r.reasoning || "");
+  if (!txt) return "输出为空";
+  if (txt.includes("\uFFFD")) return "含替换字符，疑似编码/权重异常";
+  const latin = (txt.match(/[A-Za-z0-9_$:+@#=]{2,}/g) || []).length;
+  const cjk = (txt.match(/[\u4e00-\u9fff]/g) || []).length;
+  const total = txt.length;
+  if (total > 40 && cjk === 0 && latin / total > 0.12) return "碎片化词串，疑似乱码";
+  const uniq = new Set(txt.replace(/\s/g, "")).size;
+  if (total > 60 && uniq / total < 0.08) return "重复度极高";
+  return "";
+}
+
+/* ===================================================================== *
+ *  模型库
+ * ===================================================================== */
+async function scanLibrary() {
+  if (!S.online) return toast("需要后端服务才能扫描", "warn");
+  const root = $("lib-root").value.trim();
+  const depth = parseInt($("lib-depth").value);
+  const mode = $("lib-mode").value;
+  $("lib-results").innerHTML = '<div class="empty"><span class="spin"></span> 正在扫描 ' + esc(root) + ' …（大目录可能需要十几秒）</div>';
+  $("lib-stat").textContent = "扫描中…";
+  try {
+    const d = await api(`/api/fs/scan?root=${encodeURIComponent(root)}&depth=${depth}&mode=${mode}`);
+    const models = d.models || [];
+    $("lib-stat").textContent = `共 ${models.length} 个 ${mode === "gguf" ? "GGUF 文件" : "模型"}`;
+    if (mode === "gguf") {
+      $("lib-results").innerHTML = models.length
+        ? `<div class="row" style="margin-bottom:14px">
+             <span class="badge brand">GGUF ×${models.filter(m => !m.mmproj).length}</span>
+             <span class="badge">视觉投影 ×${models.filter(m => m.mmproj).length}</span>
+             <span class="hint" style="margin:0">点卡片「用此 GGUF 启动」会自动填到 llama.cpp 引擎</span>
+           </div>
+           <div class="mcards">${models.map(m => ggufCard(m)).join("")}</div>`
+        : '<div class="empty">这个根目录下没有 .gguf 文件。深度调大或换一个根目录试试。</div>';
+    } else {
+      const nFTW = models.filter(m => m.ftw).length;
+      const nSrc = models.filter(m => m.safetensors || m.gguf).length;
+      $("lib-results").innerHTML = models.length
+        ? `<div class="row" style="margin-bottom:14px">
+             <span class="badge brand">FTW ${nFTW}</span>
+             <span class="badge">待转换 ${nSrc}</span>
+           </div>
+           <div class="mcards">${models.map(m => modelCard(m)).join("")}</div>`
+        : '<div class="empty">没有找到模型目录。试试把深度调大，或换一个根目录。</div>';
+    }
+  } catch (e) {
+    $("lib-results").innerHTML = `<div class="note err"><span>✕</span><div>${esc(e.message)}</div></div>`;
+    $("lib-stat").textContent = "扫描失败";
+  }
+}
+
+/** GGUF 文件卡：可一键把路径带回 llama.cpp 引擎，启动服务。 */
+function ggufCard(m) {
+  const p = esc(m.path).replace(/\\/g, "\\\\");
+  const size = m.sizeGB != null ? `${m.sizeGB} GB` : "";
+  const tags = [
+    m.mmproj ? `<span class="badge brand">视觉投影</span>` : `<span class="badge">GGUF</span>`,
+    m.split ? `<span class="badge">分片</span>` : "",
+    size ? `<span class="badge">${esc(size)}</span>` : "",
+    m.mtime ? `<span class="badge">${esc(m.mtime)}</span>` : "",
+  ].filter(Boolean).join(" ");
+  const btn = m.mmproj ? "" :
+    `<button class="btn sm" onclick="useGguf('${p}')">用此 GGUF 启动</button>`;
+  return `<div class="mcard">
+    <div class="nm">
+      <div class="t">${esc(m.name)}</div>
+      <div class="m" style="font-family:var(--mono);font-size:11px;color:var(--fm);word-break:break-all">${esc(m.dir)}</div>
+      <div class="row" style="margin-top:6px;gap:6px">${tags}</div>
+    </div>
+    <div class="acts">${btn}</div>
+  </div>`;
+}
+
+/** 把扫到的 GGUF 直接填到 llama.cpp 引擎（取第一个 llama 引擎，自动切回控制台） */
+function useGguf(path) {
+  const target = ENGINES.find(e => e.kind === "llama");
+  if (!target) return toast("没找到 llama.cpp 引擎", "warn");
+  C.cfg[target.id].model = path;
+  C.cfgDirty[target.id] = true;
+  Console.saveCfg();
+  Console.renderCards();
+  activateTab("console");
+  if (!C.open[target.id]) Console.toggleOpen(target.id);
+  toast("GGUF 已填到「" + target.label + "」，点「启动」即可", "ok", 4000);
+}
+
+/* ===================================================================== *
+ *  目录选择器
+ * ===================================================================== */
+const Picker = {
+  /**
+   * files 可以是 false（选目录）/ true（选文件）/ 一个配置对象。
+   * 配置对象支持：{ exts:[".gguf"], title, cb, start, legacyExe }
+   * targetId 传 null 时必须提供 cb，选择结果通过 cb(path) 回传。
+   */
+  open(targetId, files = false, opts = {}) {
+    if (files && typeof files === "object") { opts = files; files = true; }
+    const legacyExe = opts.legacyExe !== undefined ? !!opts.legacyExe : (files === true && !opts.exts);
+    S.pickerFor = targetId || null;
+    S.pickerFiles = !!files;
+    S.pickerExts = opts.exts || (legacyExe ? [".exe"] : null);
+    S.pickerCb = opts.cb || null;
+    S.pickerLegacyExe = legacyExe;
+    $("picker-title").textContent = opts.title || (files ? "选择文件" : "选择目录");
+    const wrap = $("picker-only-wrap");
+    if (wrap) wrap.classList.toggle("hidden", !!files);
+    $("picker-mask").classList.add("show");
+
+    const cur = (targetId && $(targetId)) ? $(targetId).value.trim() : "";
+    let start = opts.start || cur;
+    if (files && start && /\.[a-z0-9]{1,6}$/i.test(start)) start = start.replace(/[\\/][^\\/]*$/, "");
+    if (!start) start = S.settings.root || "G:\\AI";
+    this.nav(start);
+  },
+  close() {
+    $("picker-mask").classList.remove("show");
+    S.pickerCb = null;
+  },
+  nav(path) {
+    this._load(path);
+  },
+  up() { if (S.pickerParent) this._load(S.pickerParent); },
+  reload() { if (S.pickerPath) this._load(S.pickerPath); },
+  async _load(path) {
+    $("picker-list").innerHTML = '<div class="empty"><span class="spin"></span> 读取中…</div>';
+    if (!S.online) {
+      $("picker-path").textContent = "命令行模式下无法浏览，请直接输入路径";
+      $("picker-list").innerHTML = '<div class="empty">请手动输入完整路径到输入框</div>';
+      return;
+    }
+    try {
+      let url = "/api/fs/list?path=" + encodeURIComponent(path || "");
+      if (S.pickerFiles) {
+        url += "&files=1&ext=" + encodeURIComponent((S.pickerExts || []).join(","));
+      }
+      const d = await api(url);
+      if (d.error && !(d.dirs || []).length && !(d.files || []).length) throw new Error(d.error);
+      S.pickerPath = d.path; S.pickerParent = d.parent;
+      $("picker-path").textContent = d.path;
+      $("picker-shortcuts").innerHTML = (d.drives || []).map(x =>
+        `<span class="chip" onclick="Picker.nav('${x.drive}:\\\\')">${x.drive}: (${x.freeGB}G)</span>`).join("") +
+        `<span class="chip" onclick="Picker.nav('${esc(S.settings.root).replace(/\\/g, "\\\\")}')">${esc(S.settings.root)}</span>`;
+
+      const q = p => esc(p).replace(/\\/g, "\\\\").replace(/'/g, "\\'");
+      let dirs = d.dirs || [];
+      if ($("picker-only-models").checked) dirs = dirs.filter(x => x.isModel);
+
+      let html = dirs.map(x => `
+        <div class="item" ondblclick="Picker.nav('${q(x.path)}')"
+             onclick="Picker.sel=this" data-path="${esc(x.path)}" data-file="0">
+          <div class="ico ${x.isModel ? "model" : ""}">${x.isModel ? "◆" : "▸"}</div>
+          <div class="nm">${esc(x.name)}</div>
+          ${x.isModel ? '<span class="badge brand">模型</span>' : ""}
+          <div class="mt">${esc(x.mtime || "")}</div>
+        </div>`).join("");
+
+      if (S.pickerFiles && (d.files || []).length) {
+        html += `<div style="padding:8px 12px 4px;font-size:11.5px;color:var(--muted)">匹配的文件</div>`;
+        html += d.files.map(f => `
+          <div class="item" onclick="Picker.sel=this" ondblclick="Picker.choose()"
+               data-path="${esc(f.path)}" data-file="1">
+            <div class="ico model">●</div>
+            <div class="nm">${esc(f.name)}</div>
+            <div class="mt">${(f.sizeGB || 0).toFixed(2)} GB</div>
+          </div>`).join("");
+      }
+      $("picker-list").innerHTML = html || '<div class="empty">此目录下没有可选内容</div>';
+    } catch (e) {
+      $("picker-list").innerHTML = `<div class="note err" style="margin:12px"><span>✕</span><div>${esc(e.message)}</div></div>`;
+    }
+  },
+  choose() {
+    const marked = $("picker-list").querySelector(".item.sel");
+    let p = marked ? marked.dataset.path : S.pickerPath;
+    const isFile = marked ? marked.dataset.file === "1" : false;
+    if (!p) return;
+    p = p.replace(/\//g, "\\");
+
+    if (S.pickerCb) { const cb = S.pickerCb; this.close(); cb(p, isFile); return; }
+    if (!S.pickerFor || !$(S.pickerFor)) { this.close(); return; }
+
+    if (S.pickerLegacyExe && !isFile) {
+      $(S.pickerFor).value = p.replace(/[\\/]+$/, "") + "\\ft.exe";
+    } else {
+      $(S.pickerFor).value = p;
+      if (S.pickerFor === "in-model") inspectSource();
+      if (S.pickerFor === "in-out") { refreshCmd(); refreshOutInfo(); }
+      if (S.pickerFor === "s-model") inspectServeModel();
+      if (S.pickerFor === "lib-root") { }
+    }
+    this.close();
+  },
+};
+
+// 单击选中、双击进入
+document.addEventListener("click", e => {
+  const item = e.target.closest && e.target.closest("#picker-list .item");
+  if (item) {
+    document.querySelectorAll("#picker-list .item").forEach(x => x.classList.remove("sel"));
+    item.classList.add("sel");
+  }
+});
+
+/* ===================================================================== *
+ *  杂项
+ * ===================================================================== */
+async function copyText(t) {
+  try { await navigator.clipboard.writeText(t); toast("已复制到剪贴板", "ok", 1800); }
+  catch {
+    const ta = document.createElement("textarea");
+    ta.value = t; document.body.appendChild(ta); ta.select();
+    try { document.execCommand("copy"); toast("已复制", "ok", 1800); }
+    catch { toast("复制失败，请手动选择文本", "err"); }
+    ta.remove();
+  }
+}
+function download(name, text) {
+  const blob = new Blob([text], { type: "application/octet-stream" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob); a.download = name; a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 3000);
+  toast("已下载 " + name, "ok");
+}
+
+document.addEventListener("keydown", e => {
+  if (e.key === "Escape") Picker.close();
+  if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+    const p = document.getElementById("pane-serve");
+    if (p && p.classList.contains("active")) sendChat();
+  }
+});
+["in-dtype", "in-moe", "in-shard", "in-gpu", "in-extra"].forEach(id =>
+  $(id).addEventListener("input", refreshCmd));
+
+/* ===================================================================== *
+ *  控制台 —— 多引擎仪表盘
+ *  FreeToken(FTW) / llama.cpp / llama-turboquant 三个引擎共用一条状态栏、
+ *  一套日志管线，互相独立启动与停止。
+ * ===================================================================== */
+const RATE_IN = 2.5 / 1e6;     // 对标参考托管 API：输入 $2.5 / 百万 token
+const RATE_OUT = 10 / 1e6;     //                    输出 $10 / 百万 token
+
+const ENGINES = [
+  { id: "freetoken", label: "FreeToken (FTW)", ico: "FT", cls: "", kind: "ftw",
+    desc: "W4A4 NVFP4 专用引擎 · 官方定位 Blackwell，本机 sm_86 走软件模拟", port: 8421 },
+  { id: "llama", label: "llama.cpp", ico: "LC", cls: "lc", kind: "llama",
+    desc: "ggml-org 官方主线构建 · 通用 GGUF 推理", port: 8080 },
+  { id: "turboquant", label: "llama-turboquant", ico: "TQ", cls: "tq", kind: "llama",
+    desc: "turbo2 / turbo3 压缩 KV · 长上下文省显存", port: 8081 },
+];
+
+const C = {
+  env: null, sys: null, ft: null,
+  st: {}, task: {}, off: {}, logs: {}, cfgDirty: {},
+  cfg: {}, inst: {}, instCaps: {}, installs: [], presets: [],
+  gguf: [], ggufRoot: "G:\\AI",
+  open: {}, logEngine: "llama", level: "all", find: "",
+  timer: null, busy: false,
+  tokPer: {}, tokens: { prompt: 0, decoded: 0 },
+  prevState: {}, startedSession: {}, chatPopped: {},
+};
+
+function setHTML(el, html) {
+  if (!el || el.__sig === html) return;
+  el.__sig = html;
+  el.innerHTML = html;
+}
+const ce = id => document.getElementById(id);
+const bname = p => String(p || "").replace(/[\\/]+$/, "").split(/[\\/]/).pop() || "";
+const nInt = n => (n === null || n === undefined || n === "" || isNaN(n)) ? "—" : Number(n).toLocaleString("en-US");
+const STATE_TXT = { ok: "运行中", loading: "加载中", starting: "启动中", error: "启动失败", stopped: "已停止", down: "未运行" };
+
+/* 退出工具：调后端 /api/shutdown，后端会先杀掉所有托管的模型服务再退出自身。 */
+async function shutdownTool() {
+  if (!confirm("退出工具？\n\n会先停止本工具托管的所有模型服务（释放显存），再关闭工具本身。")) return;
+  toast("正在关闭工具并停止服务…", "warn", 4000);
+  try {
+    await api("/api/shutdown", { method: "POST", body: "{}" });
+  } catch (e) { /* 后端可能已在关机，连接会断，忽略 */ }
+  // 后端收到后会在 ~1s 内退出，这里给页面一个明确的结束提示
+  setTimeout(() => {
+    document.body.innerHTML =
+      '<div style="height:100vh;display:grid;place-items:center;font-family:system-ui,sans-serif;color:#5a6373;text-align:center">' +
+      '<div><div style="font-size:42px;margin-bottom:12px">👋</div>' +
+      '<div style="font-size:18px;font-weight:600;color:#1c2230">工具已退出</div>' +
+      '<div style="margin-top:8px;font-size:13px">所有模型服务已停止，显存已归还。可重新双击「启动工具.bat」。</div></div></div>';
+  }, 1200);
+}
+
+const Console = {
+  /* 与 C.cfgDirty 指向同一个对象：renderCards() 读的是 C.cfgDirty，
+     而下面的方法都写 this.cfgDirty —— 别名保证两边一致，否则改预设后面板不刷新。 */
+  cfgDirty: C.cfgDirty,
+
+  /* ------------------------------------------------------------------ *
+   *  生命周期
+   * ------------------------------------------------------------------ */
+  async init() {
+    ENGINES.forEach(e => {
+      if (!C.cfg[e.id]) C.cfg[e.id] = {
+        model: "", port: String(e.port), extraArgs: "",
+        preset: e.kind === "llama" ? (e.id === "turboquant" ? "turbo128k" : "std") : "",
+        ctx: "", kvK: "", kvV: "", ngl: "99", batch: "", ubatch: "",
+        cacheRam: "", mmproj: "", threads: "", threadsBatch: "", parallel: "",
+        host: "127.0.0.1", loadMode: "", reasoning: "", warmup: "", logitBias: "", flashAttn: "on",
+        ftRatio: "", ftConc: "", ftCache: "", ftNvfp4: "", ftGpu: "", ftPrefill: "",
+        ftCudaGraph: "",
+      };
+      if (C.open[e.id] === undefined) C.open[e.id] = (e.id === "turboquant" || e.id === "freetoken");
+      if (!C.logs[e.id]) C.logs[e.id] = [];
+      C.st[e.id] = C.st[e.id] || { state: "down" };
+    });
+    this.restoreCfg();
+    ce("eng-list").innerHTML = ENGINES.map(e => `
+      <div class="eng" id="eng-${e.id}">
+        <div class="top"></div>
+        <div class="chips"></div>
+        <div id="cfgw-${e.id}" class="cfgwrap"></div>
+      </div>`).join("");
+    ce("log-eng").innerHTML = ENGINES.map(e =>
+      `<button data-eng="${e.id}" onclick="Console.selectLogEngine('${e.id}')">${esc(e.label)}</button>`).join("");
+    document.body.insertAdjacentHTML("beforeend",
+      '<datalist id="gguf-list"></datalist><datalist id="kv-list"></datalist>');
+
+    await this.loadAll();
+    this.render();
+    this.renderLogTabs();
+    await this.attach();
+    this.tick();
+    this.watch();
+  },
+
+  onShow() {
+    // 切回控制台时补一次刷新（页面在别的 tab 上时轮询仍在跑，但保险起见）
+    if (!C.timer) this.watch();
+    this.tick();
+  },
+
+  hardRefresh() {
+    this.loadAll(true);
+    this.tick();
+    toast("已刷新", "ok", 1600);
+  },
+
+  watch() {
+    if (C.timer) clearInterval(C.timer);
+    C.timer = setInterval(() => this.tick(), 1500);
+  },
+
+  saveCfg() {
+    try {
+      localStorage.setItem("ftw-console", JSON.stringify({
+        cfg: C.cfg, inst: C.inst, ggufRoot: C.ggufRoot, open: C.open,
+        tokPer: C.tokPer,
+      }));
+    } catch {}
+  },
+  restoreCfg() {
+    try {
+      const raw = localStorage.getItem("ftw-console");
+      if (!raw) return;
+      const d = JSON.parse(raw);
+      if (d.cfg) ENGINES.forEach(e => Object.assign(C.cfg[e.id], d.cfg[e.id] || {}));
+      if (d.inst) Object.assign(C.inst, d.inst);
+      if (d.ggufRoot) C.ggufRoot = d.ggufRoot;
+      if (d.open) Object.assign(C.open, d.open);
+      if (d.tokPer) C.tokPer = d.tokPer;
+    } catch {}
+  },
+
+  /* ------------------------------------------------------------------ *
+   *  数据加载
+   * ------------------------------------------------------------------ */
+  async loadAll(force) {
+    if (!S.online) {
+      ce("c-sub").textContent = "后端服务未连接 —— 控制台需要后端（重启工具箱即可）";
+      ce("c-live").className = "live off";
+      return;
+    }
+    await Promise.all([this.loadLlama(), this.loadSys(), this.loadFt(force)]);
+    await this.loadGguf(true);
+  },
+
+  async loadLlama() {
+    try {
+      const d = await api("/api/llama/env");
+      C.env = d;
+      C.installs = d.installs || [];
+      C.presets = d.presets || [];
+      C.installs.forEach(i => { C.instCaps[i.exe] = i.caps || {}; });
+      const turbo = C.installs.find(i => i.flavor === "turboquant");
+      const std = C.installs.find(i => i.flavor === "standard") || turbo;
+      if (!C.inst.llama || !C.installs.some(i => i.exe === C.inst.llama)) C.inst.llama = std ? std.exe : "";
+      if (!C.inst.turboquant || !C.installs.some(i => i.exe === C.inst.turboquant)) C.inst.turboquant = turbo ? turbo.exe : "";
+      const kv = ["f16", "q8_0", "q4_0", ...(d.turboKVTypes || [])];
+      const dl = ce("kv-list");
+      if (dl) dl.innerHTML = kv.map(k => `<option value="${esc(k)}"></option>`).join("");
+    } catch (e) { /* 探测失败不阻断其它部分 */ }
+  },
+
+  async loadSys() {
+    try { C.sys = await api("/api/sysinfo"); } catch {}
+  },
+
+  async loadFt(notify) {
+    try {
+      C.ft = await api("/api/ft/status");
+      if (notify) toast(C.ft.installed ? "FreeToken 引擎正常" : "未检测到 FreeToken 引擎", C.ft.installed ? "ok" : "warn");
+    } catch {}
+  },
+
+  async loadGguf(silent) {
+    if (!S.online) return;
+    try {
+      const d = await api(`/api/llama/scan?dir=${encodeURIComponent(C.ggufRoot)}&depth=2`);
+      C.gguf = d.models || [];
+      const dl = ce("gguf-list");
+      if (dl) dl.innerHTML = C.gguf.filter(m => !m.mmproj)
+        .map(m => `<option value="${esc(m.path)}">${esc(m.sizeGB + " GB")}</option>`).join("");
+      // 两个 llama 引擎还没选模型时，默认挑最大的那个
+      const best = C.gguf.find(m => !m.mmproj);
+      if (best) ENGINES.filter(e => e.kind === "llama").forEach(e => {
+        if (!C.cfg[e.id].model) C.cfg[e.id].model = best.path;
+      });
+      if (!silent) toast(`扫到 ${C.gguf.length} 个 GGUF`, "ok");
+    } catch (e) { if (!silent) toast(e.message, "err"); }
+  },
+
+  /* ------------------------------------------------------------------ *
+   *  渲染
+   * ------------------------------------------------------------------ */
+  render() {
+    this.renderCards();
+    this.renderKpi();
+    this.renderHardware();
+    this.renderRings();
+    this.renderEnvCard();
+    this.renderCache();
+  },
+
+  renderCards() {
+    ENGINES.forEach(e => {
+      const host = ce("eng-" + e.id);
+      if (!host) return;
+      const st = C.st[e.id] || { state: "down" };
+      const cfg = C.cfg[e.id];
+      const stt = st.state || "down";
+      const running = ["ok", "loading", "starting"].includes(stt);
+      const stCls = stt === "ok" ? "ok"
+        : (stt === "loading" || stt === "starting") ? "load"
+        : (stt === "error" ? "bad" : "");
+      host.className = "eng" + (stt === "ok" ? " on" : "") + (stt === "error" ? " bad" : "") + (C.open[e.id] ? " open" : "");
+
+      setHTML(host.querySelector(".top"), `
+        <div class="ico ${e.cls}">${e.ico}</div>
+        <div class="nm">
+          <div class="t">${esc(e.label)}</div>
+          <div class="m">${esc(e.desc)}</div>
+        </div>
+        <span class="st ${stCls}">${STATE_TXT[stt] || "未运行"}${
+          st.label && running ? " · " + esc(st.label) : ""}</span>
+        <div class="acts">
+          <button class="db sm" onclick="Console.toggleOpen('${e.id}')">${C.open[e.id] ? "收起配置" : "配置"}</button>
+          <button class="db sm" onclick="viewEngineLog('${e.id}')" title="查看这台引擎最近一次启动的完整日志">日志</button>
+          ${running
+            ? `<button class="db sm" onclick="Console.restart('${e.id}')">重启</button>
+               <button class="db sm" onclick="Chat.open({engineId:'${e.id}',port:C.cfg['${e.id}'].port,label:'${e.label}',ico:'${e.ico}',title:'${e.label} · 对话'})">对话</button>
+               <button class="db sm stop" onclick="Console.stop('${e.id}')">停止</button>`
+            : `<button class="db sm go" onclick="Console.start('${e.id}')">启动</button>`}
+        </div>`);
+
+      const chips = [];
+      if (e.kind === "ftw") {
+        chips.push(C.ft && C.ft.installed ? `引擎 ${C.ft.version || "已安装"}` : "引擎未安装");
+        chips.push(cfg.model ? "模型 " + bname(cfg.model) : "未选模型目录");
+      } else {
+        const caps = C.instCaps[C.inst[e.id]] || {};
+        chips.push(C.inst[e.id] ? `${(caps.turboKV ? "turboquant" : "llama.cpp")} ${caps.build || ""}`.trim()
+          : "未检测到 llama-server.exe");
+        chips.push(cfg.model ? bname(cfg.model) : "未选 GGUF");
+        if (cfg.ctx) chips.push("ctx " + nInt(cfg.ctx));
+        if (cfg.kvK) chips.push("KV " + cfg.kvK + "/" + cfg.kvV);
+      }
+      chips.push(":" + cfg.port);
+      if (st.pid) chips.push("PID " + st.pid);
+      if (stt === "ok" && st.metrics && st.metrics.decodeTps) chips.push(st.metrics.decodeTps.toFixed(1) + " t/s");
+      setHTML(host.querySelector(".chips"),
+        chips.filter(Boolean).map(c => `<span class="chipd${/t\/s|运行/.test(c) ? " hl" : ""}">${esc(c)}</span>`).join(""));
+
+      // 折叠：用 .open 类 + CSS 控制显隐（权威），内容仅在字段变化(cfgDirty)或首次
+      // 展开时重建，避免每帧重建把用户正在输入的文字冲掉，也避免收起后再展开清空。
+      const w = ce("cfgw-" + e.id);
+      if (C.cfgDirty[e.id]) {
+        delete C.cfgDirty[e.id];
+        w.__sig = null;
+        setHTML(w, C.open[e.id] ? (e.kind === "ftw" ? this.ftwCfg(e) : this.llamaCfg(e)) : "");
+      } else if (C.open[e.id] && !w.innerHTML.trim()) {
+        setHTML(w, e.kind === "ftw" ? this.ftwCfg(e) : this.llamaCfg(e));
+      }
+    });
+  },
+
+  llamaCfg(e) {
+    const cfg = C.cfg[e.id];
+    const caps = C.instCaps[C.inst[e.id]] || {};
+    const opts = C.installs.length
+      ? C.installs.map(i => `<option value="${esc(i.exe)}" ${C.inst[e.id] === i.exe ? "selected" : ""}>`
+          + `${i.flavor === "turboquant" ? "[turboquant] " : "[llama.cpp] "}${esc(i.dir)}</option>`).join("")
+      : '<option value="">未检测到 llama-server.exe</option>';
+    const pres = C.presets.filter(p => !p.turbo || caps.turboKV)
+      .map(p => `<option value="${p.id}" ${cfg.preset === p.id ? "selected" : ""}>${esc(p.label)}</option>`).join("");
+    return `<div class="cfg">
+      <label class="df" style="grid-column:1/-1"><span>引擎目录 <em>llama-server.exe</em></span>
+        <select onchange="Console.setInst('${e.id}', this.value)">${opts}</select></label>
+      <label class="df" style="grid-column:1/-1"><span>模型文件 <em>GGUF</em></span>
+        <div class="prow">
+          <input type="text" list="gguf-list" value="${esc(cfg.model)}" placeholder="G:\\AI\\xxx.gguf"
+                 oninput="Console.set('${e.id}','model',this.value)">
+          <button class="db sm" onclick="Console.pickModel('${e.id}')">浏览</button>
+        </div></label>
+      <label class="df"><span>端口</span><input type="number" value="${esc(cfg.port)}"
+        oninput="Console.set('${e.id}','port',this.value)"></label>
+      <label class="df"><span>档位预设</span>
+        <select onchange="Console.setPreset('${e.id}', this.value)">${pres || '<option value="">—</option>'}</select></label>
+      <label class="df"><span>上下文 -c</span><input type="number" value="${esc(cfg.ctx)}" placeholder="预设值"
+        oninput="Console.set('${e.id}','ctx',this.value)"></label>
+      <label class="df"><span>KV 类型 K</span><input type="text" list="kv-list" value="${esc(cfg.kvK)}"
+        oninput="Console.set('${e.id}','kvK',this.value)"></label>
+      <label class="df"><span>KV 类型 V</span><input type="text" list="kv-list" value="${esc(cfg.kvV)}"
+        oninput="Console.set('${e.id}','kvV',this.value)"></label>
+      <label class="df"><span>GPU 层数 -ngl</span><input type="number" value="${esc(cfg.ngl)}"
+        oninput="Console.set('${e.id}','ngl',this.value)"></label>
+      <label class="df"><span>batch / ubatch</span>
+        <div class="prow">
+          <input type="number" value="${esc(cfg.batch)}" placeholder="自动" oninput="Console.set('${e.id}','batch',this.value)">
+          <input type="number" value="${esc(cfg.ubatch)}" placeholder="自动" oninput="Console.set('${e.id}','ubatch',this.value)">
+        </div></label>
+      <label class="df"><span>cache-ram <em>MiB</em></span><input type="number" value="${esc(cfg.cacheRam)}"
+        placeholder="自动" oninput="Console.set('${e.id}','cacheRam',this.value)"></label>
+      <label class="df"><span>GPU 线程 threads</span><input type="number" value="${esc(cfg.threads)}"
+        placeholder="自动" oninput="Console.set('${e.id}','threads',this.value)"></label>
+      <label class="df"><span>批线程 threads-batch</span><input type="number" value="${esc(cfg.threadsBatch)}"
+        placeholder="自动" oninput="Console.set('${e.id}','threadsBatch',this.value)"></label>
+      <label class="df"><span>并发 parallel</span><input type="number" value="${esc(cfg.parallel)}"
+        placeholder="1" oninput="Console.set('${e.id}','parallel',this.value)"></label>
+      <label class="df"><span>监听 host</span><input type="text" value="${esc(cfg.host)}"
+        placeholder="127.0.0.1" oninput="Console.set('${e.id}','host',this.value)"></label>
+      <label class="df"><span>加载方式 load-mode</span><input type="text" value="${esc(cfg.loadMode)}"
+        placeholder="留空=引擎默认" oninput="Console.set('${e.id}','loadMode',this.value)"></label>
+      <label class="df"><span>reasoning</span>
+        <select onchange="Console.set('${e.id}','reasoning',this.value)">
+          <option value="" ${!cfg.reasoning ? "selected" : ""}>引擎默认</option>
+          <option value="off" ${cfg.reasoning === "off" ? "selected" : ""}>off（关思考链）</option>
+          <option value="on" ${cfg.reasoning === "on" ? "selected" : ""}>on</option>
+        </select></label>
+      <label class="df"><span>预热 warmup</span>
+        <select onchange="Console.set('${e.id}','warmup',this.value)">
+          <option value="" ${!cfg.warmup ? "selected" : ""}>关（默认，省首启时间）</option>
+          <option value="1" ${cfg.warmup === "1" ? "selected" : ""}>开（参考脚本开启）</option>
+        </select></label>
+      <label class="df" style="grid-column:1/-1"><span>logit-bias <em>压制/提升特定词元，逗号分隔，如 248066-inf,248067-inf 关思考链</em></span>
+        <input type="text" value="${esc(cfg.logitBias)}" placeholder="（一般留空）"
+               oninput="Console.set('${e.id}','logitBias',this.value)"></label>
+      <label class="df" style="grid-column:1/-1"><span>视觉投影 mmproj <em>可选</em></span>
+        <div class="prow">
+          <input type="text" list="gguf-list" value="${esc(cfg.mmproj)}" placeholder="留空 = 纯文本"
+                 oninput="Console.set('${e.id}','mmproj',this.value)">
+          <button class="db sm" onclick="Console.pickMmproj('${e.id}')">浏览</button>
+        </div></label>
+      <label class="df" style="grid-column:1/-1"><span>附加参数</span><input type="text" value="${esc(cfg.extraArgs)}"
+        placeholder="（一般留空）" oninput="Console.set('${e.id}','extraArgs',this.value)"></label>
+    </div>
+    <div class="note2${!C.inst[e.id] ? " warn" : ""}">${
+      C.inst[e.id]
+        ? `预设只改上面几个数值，「启动 / 重启」时才生效。`
+        : `没检测到 llama-server.exe。点「浏览」选到 llama.cpp 解压目录即可（会自动往下找）。`
+    }${caps.turboKV ? " 这个构建支持 turbo 压缩 KV。" : (C.inst[e.id] ? " 这个构建不支持 turbo KV，选到 turbo 档会自动降级为 f16/q8_0。" : "")}</div>`;
+  },
+
+  ftwCfg(e) {
+    const cfg = C.cfg[e.id];
+    const f = C.ft || {};
+    return `<div class="cfg">
+      <label class="df" style="grid-column:1/-1"><span>模型目录 <em>FTW 目录加载最快，原始 HF 目录也能跑</em></span>
+        <div class="prow">
+          <input type="text" value="${esc(cfg.model)}" placeholder="G:\\AI\\Qwen3.8-27B-NVFP4-FTW"
+                 oninput="Console.set('${e.id}','model',this.value)">
+          <button class="db sm" onclick="Console.pickDir('${e.id}')">浏览</button>
+        </div></label>
+      <label class="df"><span>端口</span><input type="number" value="${esc(cfg.port)}"
+        oninput="Console.set('${e.id}','port',this.value)"></label>
+      <label class="df"><span>并发 max-running-requests</span><input type="number" value="${esc(cfg.ftConc)}"
+        placeholder="4" oninput="Console.set('${e.id}','ftConc',this.value)"></label>
+      <label class="df"><span>显存比例 memory-ratio</span><input type="number" value="${esc(cfg.ftRatio)}"
+        placeholder="自动" min="0.1" max="0.99" step="0.01" oninput="Console.set('${e.id}','ftRatio',this.value)"></label>
+      <label class="df"><span>缓存策略 cache-type</span>
+        <select onchange="Console.set('${e.id}','ftCache',this.value)">
+          <option value="">自动</option>
+          <option value="radix" ${cfg.ftCache === "radix" ? "selected" : ""}>radix（跨请求复用）</option>
+          <option value="naive" ${cfg.ftCache === "naive" ? "selected" : ""}>naive（更省状态池）</option>
+        </select></label>
+      <label class="df"><span>NVFP4 后端</span>
+        <select onchange="Console.set('${e.id}','ftNvfp4',this.value)">
+          <option value="">自动（triton）</option>
+          <option value="triton" ${cfg.ftNvfp4 === "triton" ? "selected" : ""}>triton</option>
+          <option value="marlin" ${cfg.ftNvfp4 === "marlin" ? "selected" : ""}>marlin</option>
+          <option value="flashinfer" ${cfg.ftNvfp4 === "flashinfer" ? "selected" : ""}>flashinfer</option>
+        </select></label>
+      <label class="df"><span>prefill 上限</span><input type="number" value="${esc(cfg.ftPrefill)}"
+        placeholder="自动" min="128" step="128" oninput="Console.set('${e.id}','ftPrefill',this.value)"></label>
+      <label class="df"><span>指定 GPU</span><input type="text" value="${esc(cfg.ftGpu)}"
+        placeholder="自动" oninput="Console.set('${e.id}','ftGpu',this.value)"></label>
+      <label class="df"><span>附加参数</span><input type="text" value="${esc(cfg.extraArgs)}"
+        placeholder="（一般留空）" oninput="Console.set('${e.id}','extraArgs',this.value)"></label>
+    </div>
+    <div class="row" style="margin:2px 0 4px">
+      <button class="btn sm primary" onclick="Console.tuneFt('${e.id}')">自动调优</button>
+      <span class="hint" style="margin:0">按当前真实空闲显存反推能跑起来的参数（权重+GDN 状态池+KV）。留空项启动时才自动算。</span>
+    </div>
+    <div id="ft-tune-${e.id}"></div>
+    <div class="note2${f.installed ? "" : " warn"}">${f.installed
+      ? `ft.exe：<code>${esc(f.exe)}</code>　显存预算 = <code>memory-ratio × 空闲显存 − 权重 − GDN 状态池</code>。可调上面的数值，或点「自动调优」一键反推。`
+      : `未检测到 FreeToken 引擎（ft.exe）。可以点上面的「一键安装 FreeToken」自动装。`}</div>`;
+  },
+
+  renderKpi() {
+    const tk = C.tokens || { prompt: 0, decoded: 0 };
+    const total = (tk.prompt || 0) + (tk.decoded || 0);
+    ce("k-tokens").textContent = nInt(total);
+    ce("k-tokens-sub").textContent = `${nInt(tk.prompt || 0)} 输入 · ${nInt(tk.decoded || 0)} 输出`;
+    const save = (tk.prompt || 0) * RATE_IN + (tk.decoded || 0) * RATE_OUT;
+    ce("k-save").textContent = "$" + save.toFixed(save >= 0.01 ? 2 : 4);
+
+    const live = ENGINES.map(e => ({ e, st: C.st[e.id] || {} }))
+      .filter(x => C.task[x.e.id] && ["ok", "loading", "starting"].includes(x.st.state));
+    if (live.length) {
+      const x = live[0];
+      ce("k-boot").textContent = fmtDur(x.st.elapsed || 0);
+      ce("k-boot-sub").textContent = `${x.e.label} · ${x.st.label || ""}` +
+        (x.st.modelPath ? " · " + bname(x.st.modelPath) : "");
+    } else {
+      ce("k-boot").textContent = "—";
+      ce("k-boot-sub").textContent = "尚未启动模型";
+    }
+  },
+
+  renderHardware() {
+    const s = C.sys;
+    if (!s) { ce("hw-line").textContent = "正在读取硬件信息…"; return; }
+    const g = (s.gpus || [])[0];
+    ce("hw-line").innerHTML =
+      (g ? esc(g.name) : "未检测到 NVIDIA 显卡") +
+      " · " + esc((s.host || {}).cpuName || "未知 CPU") +
+      ` · ${(s.host || {}).cores || "?"} 核`;
+  },
+
+  renderRings() {
+    const el = ce("rings");
+    if (!el) return;
+    // C.sys 是实时指标（温度/功耗/利用率），每帧轮询可能偶发为空。
+    // 拿不到实时数据时退回 S.env.gpus（来自 /api/env，缓存稳定），保证环上始终有数据。
+    const gpus = ((C.sys && C.sys.gpus) || []).length
+      ? C.sys.gpus
+      : ((S.env && S.env.gpus) || []);
+    const g = gpus[0];
+    const h = (C.sys && C.sys.host) || {}; const ram = h.ram || {};
+    const items = [
+      { k: "gmem", label: "GPU 显存", tag: "CUDA",
+        pct: g && g.totalMiB ? g.usedMiB / g.totalMiB * 100 : 0,
+        foot: g && g.totalMiB
+          ? `${((g.usedMiB || 0) / 1024).toFixed(1)} / ${(g.totalMiB / 1024).toFixed(1)} GiB` : "—" },
+      { k: "gutil", label: "GPU 使用率", tag: "CUDA",
+        pct: g ? (g.util || 0) : 0,
+        foot: g && (g.tempC != null || g.powerW != null)
+          ? `${Math.round(g.tempC || 0)} °C · ${Math.round(g.powerW || 0)} W` : "—" },
+      { k: "mem", label: "内存", tag: "RAM",
+        pct: ram.percent || 0,
+        foot: ram.totalBytes ? `${(ram.usedBytes / 2 ** 30).toFixed(1)} / ${(ram.totalBytes / 2 ** 30).toFixed(1)} GiB` : "—" },
+      { k: "cpu", label: "CPU 使用率", tag: `${h.cores || 0} CORES`,
+        pct: h.cpuPercent || 0,
+        foot: h.cpuMHz ? (h.cpuMHz / 1000).toFixed(1) + " GHz" : "—" },
+    ];
+    if (el.childElementCount !== items.length) {
+      el.innerHTML = items.map(it => `
+        <div class="ring">
+          <div class="rl"><span>${it.label}</span><span>${it.tag}</span></div>
+          <div class="rg">
+            <svg viewBox="0 0 120 120" width="126" height="126">
+              <circle cx="60" cy="60" r="50" fill="none" stroke="#232a3a" stroke-width="9"/>
+              <circle id="arc-${it.k}" cx="60" cy="60" r="50" fill="none" stroke="#4d8cff"
+                      stroke-width="9" stroke-linecap="round" transform="rotate(-90 60 60)"
+                      stroke-dasharray="${(2 * Math.PI * 50).toFixed(2)}"/>
+            </svg>
+            <div class="rv" id="rv-${it.k}">0<em>%</em></div>
+          </div>
+          <div class="rf" id="rf-${it.k}">—</div>
+        </div>`).join("");
+    }
+    const CIRC = 2 * Math.PI * 50;
+    items.forEach(it => {
+      const p = Math.max(0, Math.min(100, Number(it.pct) || 0));
+      const arc = ce("arc-" + it.k);
+      if (arc) {
+        arc.setAttribute("stroke-dashoffset", (CIRC * (1 - p / 100)).toFixed(2));
+        arc.setAttribute("stroke", p >= 88 ? "#ff6b6b" : p >= 70 ? "#f2b03d" : "#4d8cff");
+      }
+      const rv = ce("rv-" + it.k);
+      if (rv) rv.innerHTML = Math.round(p) + "<em>%</em>";
+      const rf = ce("rf-" + it.k);
+      if (rf) rf.textContent = it.foot;
+    });
+  },
+
+  renderEnvCard() {
+    const f = C.ft;
+    const body = ce("env-body");
+    const badge = ce("env-badge");
+    const btn = ce("btn-ft-install");
+    if (!S.online) {
+      badge.className = "st bad"; badge.textContent = "后端未连接";
+      setHTML(body, "");
+      if (btn) btn.style.display = "none";
+      return;
+    }
+    const rows = [];
+    if (f) {
+      rows.push({
+        k: "FreeToken 引擎", ok: f.installed,
+        v: f.installed ? `${f.version || "已安装"}　${f.exe}` : "未安装（ft.exe 未找到）",
+      });
+      if (f.installed && f.venv) rows.push({ k: "运行环境", ok: true, v: `Python venv：${f.venv}` });
+    }
+    rows.push({
+      k: "llama.cpp", ok: C.installs.length > 0,
+      v: C.installs.length
+        ? `${C.installs.length} 个构建：` + C.installs.map(i =>
+            `${i.flavor} ${((i.caps || {}).build || "")}`.trim()).join("　·　")
+        : "未检测到 llama-server.exe（可在引擎卡片里手动指定目录）",
+    });
+    // 显卡：优先用实时 sysinfo；万一那一路没拿到，退回 /api/env 的静态列表，
+    // 避免把"只是没读到实时值"误显示成"nvidia-smi 不可用"。
+    const sysGpus = ((C.sys && C.sys.gpus) || []).length
+      ? C.sys.gpus
+      : ((S.env && S.env.gpus) || []);
+    const envO = S.env || {};
+    rows.push({
+      k: "CUDA", ok: sysGpus.length > 0,
+      v: sysGpus.length
+        ? `${sysGpus[0].name} · 显存 ${((sysGpus[0].totalMiB || 0) / 1024).toFixed(0)} GB` +
+          (envO.smiPath ? `　·　nvidia-smi: ${envO.smiPath}` : "")
+        : (envO.pythonBits === 32
+            ? "未读到显卡：后端跑在 32 位 Python 上，Sysnative 兼容通道也没拿到数据，请确认显卡驱动"
+            : "nvidia-smi 不可用"),
+    });
+    // 解释器位数：这是"有显卡却读不到"的头号原因（32 位进程会被 WOW64 重定向）
+    if (envO.python) {
+      const bits = envO.pythonBits || 0;
+      rows.push({
+        k: "Python 运行时", ok: bits !== 32, chip: bits === 32 ? "32 位" : (bits ? "正常" : ""),
+        v: `${envO.python}${bits ? ` · ${bits} 位` : ""}` +
+          (bits === 32
+            ? "　⚠ 32 位解释器看不到 System32 里的 nvidia-smi（Windows 会把它重定向到 SysWOW64）。"
+              + "后端已自动改走 Sysnative 通道；彻底解决请用 64 位 Python 重开，"
+              + "「启动工具.bat」现在会优先选 64 位。"
+            : ""),
+      });
+    }
+    setHTML(body, `<div class="cfg wide">${rows.map(r => `
+      <div style="display:flex;gap:10px;align-items:flex-start;grid-column:1/-1">
+        <span class="st ${r.ok ? "ok" : "bad"}" style="flex:0 0 auto">${r.chip || (r.ok ? "正常" : "缺失")}</span>
+        <div style="min-width:0">
+          <div style="font-size:12.5px;font-weight:600">${esc(r.k)}</div>
+          <div style="font-family:var(--mono);font-size:11.5px;color:var(--fm);word-break:break-all;margin-top:2px">${esc(r.v)}</div>
+        </div>
+      </div>`).join("")}</div>`);
+
+    const ftOk = !!(f && f.installed);
+    badge.className = "st " + (ftOk && C.installs.length ? "ok" : "bad");
+    badge.textContent = ftOk && C.installs.length ? "全部就绪" : "有缺失项";
+    if (btn) btn.style.display = ftOk ? "none" : "";
+    ce("c-sub").textContent = `${C.installs.length} 个 llama.cpp 构建可用 · ` +
+      (ftOk ? "FreeToken 已安装" : "FreeToken 未安装") +
+      (C.gguf.length ? ` · ${C.gguf.filter(m => !m.mmproj).length} 个 GGUF 模型` : "");
+  },
+
+  renderCache() {
+    const el = ce("cache-body");
+    if (!el) return;
+    setHTML(el, ENGINES.map(e => {
+      const cfg = C.cfg[e.id], st = C.st[e.id] || {}, live = st.props || {};
+      const chips = e.kind === "ftw"
+        ? ["KV cache FP8（引擎自动）", "缓存策略 自动(radix/naive)", `端口 :${cfg.port}`]
+        : [`上下文 ${cfg.ctx ? nInt(cfg.ctx) : "预设"}`,
+           `KV ${cfg.kvK || "auto"} / ${cfg.kvV || "auto"}`,
+           `cache-ram ${cfg.cacheRam || "预设"} MB`,
+           `GPU 层 ${cfg.ngl || "99"}`, `端口 :${cfg.port}`];
+      if (st.state === "ok" && live.nCtx) chips.push("生效 ctx " + nInt(live.nCtx));
+      if (st.state === "ok" && live.totalSlots) chips.push("slots " + live.totalSlots);
+      return `<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+                 padding:8px 0;border-bottom:1px solid var(--bl2)">
+          <b style="min-width:140px;font-size:12.5px">${esc(e.label)}</b>
+          ${chips.map(c => `<span class="chipd">${esc(c)}</span>`).join("")}
+        </div>`;
+    }).join(""));
+    const badge = ce("cache-badge");
+    const n = ENGINES.filter(e => ["ok", "loading", "starting"].includes((C.st[e.id] || {}).state)).length;
+    badge.className = "st " + (n ? "ok" : "");
+    badge.textContent = n ? `${n} 个引擎生效中` : "未同步";
+  },
+
+  /* ------------------------------------------------------------------ *
+   *  日志
+   * ------------------------------------------------------------------ */
+  renderLogTabs() {
+    document.querySelectorAll("#log-eng button").forEach(b =>
+      b.classList.toggle("on", b.dataset.eng === C.logEngine));
+  },
+  selectLogEngine(id) {
+    C.logEngine = id;
+    this.renderLogTabs();
+    this.renderLog(true);
+  },
+  setLevel(lv) {
+    C.level = lv;
+    document.querySelectorAll("#log-level2 button").forEach(b =>
+      b.classList.toggle("on", b.dataset.lv === lv));
+    this.renderLog(true);
+  },
+  onFind() {
+    clearTimeout(this._f);
+    this._f = setTimeout(() => {
+      C.find = (ce("log-find2").value || "").trim().toLowerCase();
+      this.renderLog(true);
+    }, 180);
+  },
+  pushLocal(id, text) {
+    (C.logs[id] = C.logs[id] || []).push(text);
+    if (!C.task[id]) C.task[id] = null;
+    this._logDirty = true;
+  },
+  visible(l) {
+    const cls = classify(l);
+    if (C.level === "err" && cls !== "err") return false;
+    if (C.level === "key" && (isProgressLine(l) || cls === "prog")) return false;
+    if (C.find && l.toLowerCase().indexOf(C.find) < 0) return false;
+    return true;
+  },
+  renderLog(force) {
+    const con = ce("console-dash");
+    if (!con) return;
+    if (!force && !this._logDirty) return;
+    this._logDirty = false;
+    const all = C.logs[C.logEngine] || [];
+    const shown = [];
+    let lastProg = -1;
+    all.forEach(l => {
+      if (!this.visible(l)) return;
+      if (isProgressLine(l) && C.level === "all" && !C.find) {
+        if (lastProg >= 0) { shown[lastProg] = l; return; }
+        lastProg = shown.length;
+      } else {
+        lastProg = -1;
+      }
+      shown.push(l);
+    });
+    const cut = shown.slice(-1600);
+    con.innerHTML = cut.length
+      ? cut.map(l => {
+          const cls = "l-" + classify(l);
+          const body = C.find ? hlLine(l) : esc(l);
+          return `<div class="${cls}" title="${esc(l)}">${body}</div>`;
+        }).join("")
+      : "";
+    const cnt = ce("log-count2");
+    if (cnt) cnt.textContent = shown.length === all.length
+      ? `${all.length} 行` : `${shown.length} / ${all.length} 行`;
+    if (ce("log-auto2") && ce("log-auto2").checked) con.scrollTop = con.scrollHeight;
+  },
+  clearLog() { C.logs[C.logEngine] = []; this._logDirty = true; this.renderLog(true); },
+  copyLog() {
+    const t = (C.logs[C.logEngine] || []).join("\n");
+    if (!t) return toast("日志还是空的", "warn");
+    copyText(t);
+  },
+  exportLog() {
+    const t = (C.logs[C.logEngine] || []).join("\r\n");
+    if (!t) return toast("日志还是空的", "warn");
+    const p = (C.st[C.logEngine] || {}).port || "";
+    download(`${C.logEngine}-${p}${new Date().toISOString().slice(0, 19).replace(/[:T]/g, "")}.log`, t);
+  },
+
+  /* ------------------------------------------------------------------ *
+   *  配置编辑
+   * ------------------------------------------------------------------ */
+  set(id, key, val) {
+    C.cfg[id][key] = val;
+    this.saveCfg();
+    this._logDirty = false;
+  },
+  setInst(id, exe) {
+    C.inst[id] = exe;
+    this.cfgDirty[id] = true;        // 能力可能变（turbo KV），预设列表要重画
+    this.saveCfg();
+    this.render();
+  },
+  setPreset(id, pid) {
+    const p = C.presets.find(x => x.id === pid);
+    if (!p) return;
+    const cfg = C.cfg[id];
+    cfg.preset = pid; cfg.ctx = String(p.ctx); cfg.kvK = p.kvK; cfg.kvV = p.kvV;
+    cfg.batch = String(p.batch); cfg.ubatch = String(p.ubatch); cfg.cacheRam = String(p.cacheRam);
+    cfg.ngl = p.ngl != null ? String(p.ngl) : cfg.ngl;
+    cfg.threads = p.threads != null ? String(p.threads) : cfg.threads;
+    cfg.threadsBatch = p.threadsBatch != null ? String(p.threadsBatch) : cfg.threadsBatch;
+    cfg.parallel = p.parallel != null ? String(p.parallel) : cfg.parallel;
+    cfg.loadMode = p.loadMode || cfg.loadMode;
+    cfg.reasoning = p.reasoning || cfg.reasoning;
+    cfg.warmup = p.warmup || cfg.warmup;
+    cfg.logitBias = p.logitBias || cfg.logitBias;
+    cfg.flashAttn = p.flashAttn || cfg.flashAttn;
+    this.cfgDirty[id] = true;
+    this.saveCfg();
+    this.renderCards();
+    toast(`已套用「${p.label}」：ctx ${p.ctx} · KV ${p.kvK}/${p.kvV}`, "ok");
+  },
+  toggleOpen(id) {
+    C.open[id] = !C.open[id];
+    this.cfgDirty[id] = true;
+    this.saveCfg();
+    this.renderCards();
+  },
+  pickDir(id) {
+    Picker.open(null, { title: "选择模型目录", start: C.cfg[id].model || C.ggufRoot,
+      cb: p => { C.cfg[id].model = p; this.cfgDirty[id] = true; this.saveCfg(); this.renderCards(); } });
+  },
+  pickModel(id) {
+    Picker.open(null, { exts: [".gguf"], title: "选择 GGUF 模型文件",
+      start: C.cfg[id].model || C.ggufRoot,
+      cb: p => { C.cfg[id].model = p; this.cfgDirty[id] = true; this.saveCfg(); this.renderCards(); } });
+  },
+  pickMmproj(id) {
+    Picker.open(null, { exts: [".gguf"], title: "选择视觉投影 mmproj",
+      start: C.cfg[id].mmproj || C.ggufRoot,
+      cb: p => { C.cfg[id].mmproj = p; this.cfgDirty[id] = true; this.saveCfg(); this.renderCards(); } });
+  },
+  syncCache() {
+    // 把当前配置里的数值原样写回面板（刷新显示），并给个确认反馈
+    ENGINES.forEach(e => { this.cfgDirty[e.id] = true; });
+    this.renderCards();
+    this.renderCache();
+    toast("已同步到引擎参数面板", "ok", 2000);
+  },
+
+  /* 按显存预算反推 FreeToken 安全启动参数（合并进控制台，不再依赖单独标签页） */
+  async tuneFt(id) {
+    const cfg = C.cfg[id];
+    if (!S.online) return toast("需要后端服务才能调优", "warn");
+    if (!cfg.model) { this.toggleOpen(id); return toast("请先选择 FTW 模型目录", "warn"); }
+    let box = ce("ft-tune-" + id);
+    if (box) box.innerHTML = '<div class="hint" style="margin-top:8px">按当前空闲显存反推安全参数…</div>';
+    const want = parseInt(cfg.ftConc) || 4;
+    try {
+      const d = await api(`/api/preflight?path=${encodeURIComponent(cfg.model)}&gpu=${cfg.ftGpu || 0}&conc=${want}`);
+      const r = d.recommended;
+      if (r) {
+        cfg.ftRatio = r.memoryRatio; cfg.ftConc = r.maxRunningReq;
+        cfg.ftPrefill = r.maxPrefillLength; cfg.ftCache = r.cacheType;
+        cfg.ftCudaGraph = r.cudaGraphMaxBs || "";
+        // 注意：renderCards() 会重建整块配置面板（连带 #ft-tune-*），
+        // 所以必须重绘**之后**再重新取一次节点，否则结果会写进已脱离 DOM 的旧节点。
+        this.saveCfg(); this.cfgDirty[id] = true; this.renderCards();
+      }
+      box = ce("ft-tune-" + id) || box;
+      if (!box) return;
+      const agg = d.tier === "aggressive";
+      box.innerHTML = `
+        <div class="row" style="margin-top:10px;gap:8px">
+          <span class="badge ${agg ? "" : "brand"}" style="${agg ? "background:#fdf0d9;color:#a5741a" : ""}">
+            ${r ? (agg ? "极限档（能跑，但可能 OOM）" : "安全档（推荐）") : "无可行方案"}
+          </span>
+        </div>
+        <div class="strip" style="margin-top:10px">
+          <div class="kv"><i>权重</i><b>${d.weightsGB} GB</b></div>
+          <div class="kv"><i>空闲显存</i><b>${d.freeGB} GB</b></div>
+          <div class="kv"><i>memory-ratio</i><b style="color:var(--brand)">${d.ratio}</b></div>
+          <div class="kv"><i>可用池</i><b>${d.poolGB} GB</b></div>
+          <div class="kv"><i>线性层单请求</i><b>${d.gdnPerReqGB} GB</b></div>
+          <div class="kv"><i>图形/激活预留</i><b>${d.headroomGB} GB</b></div>
+          ${r && r.cudaGraphMaxBs ? `<div class="kv"><i>CUDA graph batch</i><b>${r.cudaGraphMaxBs}</b></div>` : ""}
+        </div>
+        ${d.gdnLayers ? `<div class="hint" style="margin-top:8px">该模型有 <b>${d.gdnLayers} 层线性注意力（GDN）</b>，状态池槽位随并发放大：
+          radix 下 <code>4×并发 + max(4,2×并发) + 1</code>，并发 4 即 25 槽。点下面任意一行可直接套用。</div>` : ""}
+        <div class="opts"><table>
+          <thead><tr><th>并发</th><th>缓存</th><th>GDN 槽位</th><th>状态池</th><th>KV 余量</th><th>结论</th></tr></thead>
+          <tbody>${(d.options || []).map(o => `
+            <tr class="${o.ok ? "ok" : "bad"}${r && o.maxRunningReq === r.maxRunningReq && o.cacheType === r.cacheType ? " pick" : ""}"
+                ${o.ok ? `onclick="Console.applyTune('${id}',${o.maxRunningReq},'${o.cacheType}')"` : ""}>
+              <td><b>${o.maxRunningReq}</b></td>
+              <td>${o.cacheType}</td>
+              <td>${o.slots}</td>
+              <td>${o.stateGB} GB</td>
+              <td style="color:${o.kvGB > 1 ? "var(--ok)" : "var(--err)"}"><b>${o.kvGB} GB</b></td>
+              <td>${o.ok ? "可启动" : "显存不足"}</td>
+            </tr>`).join("")}</tbody>
+        </table></div>
+        ${(d.warnings || []).map(w =>
+          `<div class="note warn" style="margin-top:8px"><span>⚠</span><div>${esc(w)}</div></div>`).join("")}`;
+      if (r) toast(`可行方案：ratio ${r.memoryRatio} · 并发 ${r.maxRunningReq} · ${r.cacheType} 缓存`, "ok", 6000);
+      else toast("当前空闲显存装不下这个模型，请看下方提示", "err", 7000);
+    } catch (e) {
+      if (box) box.innerHTML = `<div class="note err" style="margin-top:10px"><span>✕</span><div>${esc(e.message)}</div></div>`;
+      toast(e.message, "err");
+    }
+  },
+
+  applyTune(id, conc, cacheType) {
+    const cfg = C.cfg[id];
+    cfg.ftConc = conc; cfg.ftCache = cacheType;
+    this.saveCfg(); this.cfgDirty[id] = true; this.renderCards();
+    toast(`已套用：并发 ${conc} · ${cacheType} 缓存`, "ok");
+  },
+
+  /* ------------------------------------------------------------------ *
+   *  引擎生命周期
+   * ------------------------------------------------------------------ */
+  async fetchStatus(e) {
+    const tid = C.task[e.id];
+    const port = C.cfg[e.id].port;
+    try {
+      if (e.kind === "ftw") {
+        return await api(tid ? `/api/serve/status?id=${tid}` : `/api/serve/status?port=${encodeURIComponent(port)}`);
+      }
+      return await api(tid ? `/api/llama/status?id=${tid}` : `/api/llama/status?port=${encodeURIComponent(port)}`);
+    } catch { return null; }
+  },
+
+  async fetchLog(id) {
+    const tid = C.task[id];
+    if (!tid) return;
+    try {
+      const d = await api(`/api/task?id=${tid}&offset=${C.off[id] || 0}`);
+      if (d.lines && d.lines.length) {
+        C.off[id] = d.offset;
+        C.logs[id] = (C.logs[id] || []).concat(d.lines);
+        if (C.logs[id].length > 6000) C.logs[id] = C.logs[id].slice(-6000);
+        this._logDirty = true;
+      }
+    } catch {}
+  },
+
+  async stopQuiet(id) {
+    const tid = C.task[id];
+    if (!tid) return;
+    try {
+      await api(id === "freetoken" ? "/api/serve/stop" : "/api/llama/stop",
+        { method: "POST", body: JSON.stringify({ id: tid }) });
+    } catch {}
+    C.task[id] = null; C.off[id] = 0;
+  },
+
+  async start(id) {
+    const e = ENGINES.find(x => x.id === id);
+    const cfg = C.cfg[id];
+    C.startedSession[id] = true; C.chatPopped[id] = false;   // 本次会话启动过 → 就绪后自动弹对话
+    if (!S.online) return toast("后端服务未连接", "warn");
+    // 已经在跑：先把这个引擎的旧实例停掉再启动（后端也会按端口接管，这里让前端状态先归位）
+    if (["ok", "loading", "starting"].includes((C.st[id] || {}).state)) {
+      await this.stopQuiet(id);
+      await new Promise(r => setTimeout(r, 900));
+    }
+
+    try {
+      let r;
+      if (e.kind === "ftw") {
+        if (!cfg.model) { this.toggleOpen(id); return toast("请先选择 FTW 模型目录", "warn"); }
+        r = await api("/api/serve/start", {
+          method: "POST",
+          body: JSON.stringify({
+            ft: S.ft, modelPath: cfg.model, port: cfg.port, extraArgs: cfg.extraArgs,
+            memoryRatio: (cfg.ftRatio || "").trim(),
+            maxRunningReq: (cfg.ftConc || "").trim(),
+            cacheType: cfg.ftCache || "",
+            nvfp4Backend: cfg.ftNvfp4 || "",
+            gpu: (cfg.ftGpu || "").trim(),
+            maxPrefillLength: (cfg.ftPrefill || "").trim(),
+            cudaGraphMaxBs: (cfg.ftCudaGraph || "").trim(),
+          }),
+        });
+      } else {
+        if (!cfg.model) { this.toggleOpen(id); return toast("请先选择 GGUF 模型文件", "warn"); }
+        if (!C.inst[id]) { this.toggleOpen(id); return toast("请先指定 llama.cpp 引擎目录", "warn"); }
+        r = await api("/api/llama/start", {
+          method: "POST",
+          body: JSON.stringify({
+            engine: id, exe: C.inst[id], model: cfg.model, port: cfg.port,
+            ctx: cfg.ctx, kvK: cfg.kvK, kvV: cfg.kvV, ngl: cfg.ngl,
+            batch: cfg.batch, ubatch: cfg.ubatch, cacheRam: cfg.cacheRam,
+            threads: cfg.threads, threadsBatch: cfg.threadsBatch, parallel: cfg.parallel,
+            host: cfg.host, loadMode: cfg.loadMode, reasoning: cfg.reasoning,
+            warmup: cfg.warmup, flashAttn: cfg.flashAttn, logitBias: cfg.logitBias,
+            mmproj: cfg.mmproj, extraArgs: cfg.extraArgs,
+          }),
+        });
+      }
+      C.task[id] = r.taskId;
+      C.off[id] = 0;
+      C.logs[id] = [];
+      this._logDirty = true;
+      this.pushLocal(id, "启动命令: " + (r.cmd || []).join(" "));
+      (r.warnings || []).forEach(w => this.pushLocal(id, "[提示] " + w));
+      if (r.plan && r.plan.recommended) {
+        const rec = r.plan.recommended;
+        this.pushLocal(id, `后端按当前显存自动选参：ratio ${rec.memoryRatio} · 并发 ${rec.maxRunningReq} · ${rec.cacheType} 缓存`);
+      }
+      this.selectLogEngine(id);
+      toast(`已提交启动请求（端口 ${r.port}）`, "ok");
+      this.tick();
+    } catch (err) {
+      toast(err.message, "err", 8000);
+      this.pushLocal(id, "启动失败: " + err.message);
+      this.selectLogEngine(id);
+      this.renderLog(true);
+    }
+  },
+
+  async stop(id) {
+    const tid = C.task[id];
+    if (!tid) return toast("这个服务不是本工具启动的，无法在这里停止", "warn");
+    if (!confirm("确定停止？显存会被释放。")) return;
+    try {
+      await api(id === "freetoken" ? "/api/serve/stop" : "/api/llama/stop",
+        { method: "POST", body: JSON.stringify({ id: tid }) });
+      this.pushLocal(id, "已发送停止信号，正在回收显存…");
+      C.task[id] = null; C.off[id] = 0;
+      this.selectLogEngine(id);
+      toast("已停止", "warn");
+      setTimeout(() => this.tick(), 1000);
+    } catch (e) { toast(e.message, "err"); }
+  },
+
+  async restart(id) {
+    if (!confirm("重启这个引擎？会先停止再用同样的参数重新加载。")) return;
+    const port = C.cfg[id].port;
+    await this.stop(id);
+    for (let i = 0; i < 20; i++) {
+      await new Promise(r => setTimeout(r, 600));
+      const st = await this.fetchStatus(ENGINES.find(x => x.id === id));
+      if (st && st.state === "down") break;
+    }
+    C.cfg[id].port = port;
+    await this.start(id);
+  },
+
+  async installFt() {
+    if (!S.online) return toast("后端服务未连接", "warn");
+    if (!confirm("一键安装 / 修复 FreeToken 引擎？\n\n" +
+      "会优先使用本机已有的官方 install.ps1 与 wheel 离线安装；\n" +
+      "找不到时再用 uv 从网络安装。日志会输出到下面。"))
+      return;
+    try {
+      const r = await api("/api/ft/install", { method: "POST", body: JSON.stringify({}) });
+      C.task.freetoken = r.taskId; C.off.freetoken = 0; C.logs.freetoken = [];
+      this.pushLocal("freetoken", "安装方式: " + r.mode + " — " + (r.detail || ""));
+      this.selectLogEngine("freetoken");
+      this.renderLog(true);
+      toast("安装已开始，看下面的日志", "ok");
+      this.watch();
+      this.tick();
+    } catch (e) { toast(e.message, "err", 8000); }
+  },
+
+  /* ------------------------------------------------------------------ *
+   *  轮询
+   * ------------------------------------------------------------------ */
+  async tick() {
+    if (C.busy || !S.online) return;
+    C.busy = true;
+    try {
+      await Promise.all([
+        this.loadSys(),
+        ...ENGINES.map(async e => {
+          C.st[e.id] = (await this.fetchStatus(e)) || C.st[e.id] || { state: "down" };
+          await this.fetchLog(e.id);
+        }),
+      ]);
+      // 累加可观测的 token 数（每个引擎取历史最高水位，进程重启后不会倒退）
+      ENGINES.forEach(e => {
+        const m = (C.st[e.id] || {}).metrics;
+        if (!m) return;
+        const cur = C.tokPer[e.id] || { prompt: 0, decoded: 0 };
+        cur.prompt = Math.max(cur.prompt, m.promptTokens || 0);
+        cur.decoded = Math.max(cur.decoded, m.decodedTokens || 0);
+        C.tokPer[e.id] = cur;
+      });
+      const sum = { prompt: 0, decoded: 0 };
+      Object.values(C.tokPer).forEach(v => { sum.prompt += v.prompt; sum.decoded += v.decoded; });
+      C.tokens = sum;
+      this.render();
+      Chat.autoPop();   // 引擎就绪后自动弹出对话界面（每个会话每引擎只弹一次）
+      if (C.task.freetoken && !(C.st.freetoken && ["ok", "loading", "starting"].includes(C.st.freetoken.state))) {
+        // 安装任务结束后刷新一次引擎探测
+        if (!this._ftRechecked) {
+          this._ftRechecked = true;
+          setTimeout(async () => { this._ftRechecked = false; await this.loadFt(); this.loadLlama(); this.render(); }, 1500);
+        }
+      }
+    } finally {
+      C.busy = false;
+    }
+  },
+
+  /** 页面刷新后把还活着的引擎任务接回来。 */
+  async attach() {
+    if (!S.online) return;
+    let tasks = [];
+    try { tasks = (await api("/api/tasks")).tasks || []; } catch { return; }
+    ENGINES.forEach(e => {
+      const wanted = e.kind === "ftw" ? "serve" : "llama";
+      const t = tasks.find(x => x.kind === wanted && x.status === "running" &&
+        (e.kind === "ftw" || String((x.meta || {}).engine || "") === e.id ||
+         (x.meta || {}).port === String(C.cfg[e.id].port)));
+      if (t) {
+        C.task[e.id] = t.id; C.off[e.id] = 0;
+        this.pushLocal(e.id, `[已接回] 检测到仍在运行的 ${e.label} 任务 ${t.id}`);
+        if ((t.meta || {}).modelPath) C.cfg[e.id].model = t.meta.modelPath;
+        if ((t.meta || {}).port) C.cfg[e.id].port = String(t.meta.port);
+      }
+    });
+    this.saveCfg();
+  },
+};
+
+/* ===================================================================== *
+ *  对话浮层（llama.cpp 风格）—— 引擎就绪后自动弹出，也可手动打开
+ * ===================================================================== */
+const Chat = {
+  busy: false, history: [],
+  open(opts) {
+    opts = opts || {};
+    this.history = [];                                   // 换引擎/端口时清空上下文
+    const ov = document.getElementById("chatOverlay");
+    ov.classList.add("show");
+    document.getElementById("chatMico").textContent = opts.ico || "AI";
+    document.getElementById("chatTitle").textContent = opts.title || (opts.label ? opts.label + " 对话" : "对话");
+    const port = String(opts.port || (opts.engineId ? C.cfg[opts.engineId].port : 8421));
+    document.getElementById("chatSub").textContent =
+      `端口 ${port} · ${opts.label || ""} · OpenAI 兼容 /v1/chat/completions`;
+    const sel = document.getElementById("chatPort");
+    sel.innerHTML = ENGINES.map(e => `<option value="${e.port}">:${e.port} · ${esc(e.label)}</option>`).join("");
+    if ([...sel.options].some(o => o.value === port)) sel.value = port;
+    const inp = document.getElementById("chatInput");
+    setTimeout(() => inp && inp.focus(), 60);
+  },
+  close() { document.getElementById("chatOverlay").classList.remove("show"); },
+  minimize() { this.close(); },
+  reset() {
+    this.history = [];
+    document.getElementById("chatMsgs").innerHTML = "";
+    toast("已清空对话", "ok", 1400);
+  },
+  _bub(role, html) {
+    const m = document.getElementById("chatMsgs");
+    const d = document.createElement("div");
+    d.className = "bub " + (role === "user" ? "u" : "a");
+    d.innerHTML = `<div class="role">${role === "user" ? "你" : "模型"}</div>` + (html || "");
+    m.appendChild(d); m.scrollTop = m.scrollHeight;
+    return d;
+  },
+  async send() {
+    if (this.busy) return;
+    const inp = document.getElementById("chatInput");
+    const text = (inp.value || "").trim();
+    if (!text) return;
+    inp.value = "";
+    this._bub("user", esc(text));
+
+    const wait = document.createElement("div");
+    wait.className = "chat-wait";
+    wait.innerHTML = '<span class="spin"></span> 模型思考中…';
+    const box = document.getElementById("chatMsgs");
+    box.appendChild(wait); box.scrollTop = box.scrollHeight;
+
+    const port = document.getElementById("chatPort").value;
+    this.history.push({ role: "user", content: text });
+    this.busy = true;
+    const sendBtn = document.getElementById("chatSend"); sendBtn.disabled = true;
+    try {
+      const r = await api("/api/chat", {
+        method: "POST",
+        body: JSON.stringify({
+          port, model: document.getElementById("chatModel").value || "local",
+          messages: this.history.slice(-24),
+          maxTokens: parseInt(document.getElementById("chatMax").value) || 512,
+          temperature: parseFloat(document.getElementById("chatTemp").value) || 0.7,
+          timeout: 900,
+        }),
+      });
+      wait.remove();
+      const a = this._bub("assistant", "");
+      if (r.reasoning) {
+        const rb = document.createElement("div");
+        rb.className = "chat-reason"; rb.textContent = r.reasoning;
+        a.appendChild(rb);
+      }
+      const body = document.createElement("div");
+      body.innerHTML = esc(r.content || "") +
+        (r.latency ? ` <span class="badge" style="font-size:11px;color:#8a93a6">${r.latency}s</span>` : "");
+      a.appendChild(body);
+      box.scrollTop = box.scrollHeight;
+      this.history.push({ role: "assistant", content: r.content || "" });
+    } catch (e) {
+      wait.remove();
+      this._bub("assistant", `<span style="color:#d65a5a">请求失败：${esc(e.message)}</span>`);
+    } finally {
+      this.busy = false; sendBtn.disabled = false; inp.focus();
+    }
+  },
+  /* 引擎从非就绪变为就绪时自动弹一次 */
+  autoPop() {
+    ENGINES.forEach(e => {
+      const stt = (C.st[e.id] || {}).state;
+      const prev = C.prevState[e.id];
+      C.prevState[e.id] = stt;
+      if (prev !== "ok" && stt === "ok" && C.startedSession[e.id] && !C.chatPopped[e.id]) {
+        C.chatPopped[e.id] = true;
+        this.open({ engineId: e.id, port: C.cfg[e.id].port, label: e.label, ico: e.ico,
+                    title: e.label + " · 对话" });
+      }
+    });
+  },
+};
+// 对话输入框：Enter 发送，Shift+Enter 换行
+document.addEventListener("keydown", ev => {
+  if (ev.key === "Enter" && !ev.shiftKey && document.activeElement &&
+      document.activeElement.id === "chatInput") {
+    ev.preventDefault(); Chat.send();
+  }
+});
+
+/* ===================================================================== *
+ *  引擎日志查看器 —— 任何时候都能打开，调对应引擎的上次启动任务日志
+ * ===================================================================== */
+async function viewEngineLog(engineId) {
+  const e = ENGINES.find(x => x.id === engineId);
+  if (!e) return;
+  const path = e.kind === "ftw"
+    ? `/api/serve/last-log`
+    : `/api/llama/last-log?engine=${encodeURIComponent(engineId)}`;
+  const m = document.getElementById("logOverlay");
+  const t = document.getElementById("logTitle");
+  const body = document.getElementById("logBody");
+  const meta = document.getElementById("logMeta");
+  const copyBtn = document.getElementById("logCopy");
+  if (!m) return;
+  t.textContent = `${e.label} · 上次启动日志`;
+  meta.textContent = "加载中…";
+  body.textContent = "";
+  m.classList.add("show");
+  try {
+    const d = await api(path);
+    if (!d || !d.task) {
+      meta.textContent = "这台引擎还没在本工具里启动过，没有任何日志可看。";
+      body.textContent = "";
+      copyBtn.onclick = () => toast("日志为空", "warn");
+      return;
+    }
+    const tk = d.task;
+    meta.innerHTML =
+      `<b>状态</b> ${esc(tk.status)} · <b>阶段</b> ${esc(tk.phase || "—")} · ` +
+      `<b>退出码</b> ${tk.exitCode ?? "—"} · <b>耗时</b> ${tk.elapsed.toFixed(1)}s`;
+    body.textContent = (d.lines || []).join("\n") || "(没有输出)";
+    copyBtn.onclick = async () => {
+      try { await navigator.clipboard.writeText(body.textContent); toast("日志已复制", "ok"); }
+      catch { toast("复制失败（浏览器限制）", "warn"); }
+    };
+    body.scrollTop = body.scrollHeight;
+  } catch (err) {
+    meta.textContent = "加载失败：" + esc(err.message);
+  }
+}
+
+init();
+</script>
+<!-- ===================== 对话浮层（llama.cpp 风格） ===================== -->
+<div class="chat-overlay" id="chatOverlay">
+  <div class="chat-box">
+    <div class="chat-head">
+      <div class="m-ico" id="chatMico">AI</div>
+      <div>
+        <div class="t" id="chatTitle">对话</div>
+        <div class="s" id="chatSub">准备中…</div>
+      </div>
+      <span class="sp"></span>
+      <button class="min" onclick="Chat.minimize()">最小化</button>
+      <button class="x" onclick="Chat.close()">×</button>
+    </div>
+    <div class="chat-cfg">
+      <label>端口 <select id="chatPort"></select></label>
+      <label>模型 <input id="chatModel" value="local" style="width:150px"></label>
+      <label>温度 <input id="chatTemp" type="number" value="0.7" step="0.1" style="width:58px"></label>
+      <label>max <input id="chatMax" type="number" value="512" style="width:60px"></label>
+    </div>
+    <div class="chat-msgs" id="chatMsgs"></div>
+    <div class="chat-foot">
+      <textarea id="chatInput" rows="2" placeholder="输入消息，Enter 发送 / Shift+Enter 换行"></textarea>
+      <button class="new" onclick="Chat.reset()">新对话</button>
+      <button class="send" id="chatSend" onclick="Chat.send()">发送</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== 引擎日志查看浮层 ===================== -->
+<div class="log-overlay" id="logOverlay">
+  <div class="log-box">
+    <div class="log-head">
+      <div class="t" id="logTitle">日志</div>
+      <span class="spacer" style="flex:1"></span>
+      <button class="cp" id="logCopy">复制</button>
+      <button class="x" onclick="document.getElementById('logOverlay').classList.remove('show')">×</button>
+    </div>
+    <div class="log-meta" id="logMeta">加载中…</div>
+    <div class="log-body" id="logBody"></div>
+  </div>
+</div>
+
+<script>
+// 日志浮层：按 Esc 关闭
+document.addEventListener("keydown", ev => {
+  if (ev.key === "Escape") {
+    document.getElementById("logOverlay")?.classList.remove("show");
+    document.getElementById("chatOverlay")?.classList.remove("show");
+  }
+});
+</script>
+</body>
+</html>
